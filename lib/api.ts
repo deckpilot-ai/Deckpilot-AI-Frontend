@@ -125,6 +125,33 @@ export interface Attachment {
 
 
 
+const TOKEN_KEY = "deckpilotai_token";
+
+export function getStoredToken(): string | null {
+  if (typeof window !== "undefined") {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export function setStoredToken(token: string | null): void {
+  if (typeof window !== "undefined") {
+    try {
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }
+}
+
 class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -144,6 +171,11 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
   }
 
+  const token = getStoredToken();
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const res = await fetch(url, {
     ...options,
     headers,
@@ -157,6 +189,7 @@ async function request<T>(
       !path.startsWith("/auth/register") &&
       typeof window !== "undefined"
     ) {
+      setStoredToken(null);
       window.dispatchEvent(new Event("deckpilotai:unauthorized"));
     }
     let errorMsg = `Request failed with status ${res.status}`;
@@ -191,16 +224,26 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  login: (data: { email: string; password: string }) =>
-    request<{ user: User; token: string }>("/auth/login", {
+  login: async (data: { email: string; password: string }) => {
+    const res = await request<{ user: User; token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    });
+    if (res?.token) {
+      setStoredToken(res.token);
+    }
+    return res;
+  },
 
-  logout: () =>
-    request<{ status: string; message: string }>("/auth/logout", {
-      method: "POST",
-    }),
+  logout: async () => {
+    try {
+      return await request<{ status: string; message: string }>("/auth/logout", {
+        method: "POST",
+      });
+    } finally {
+      setStoredToken(null);
+    }
+  },
 
   getMe: () => request<User>("/auth/me"),
 
@@ -271,7 +314,8 @@ export const api = {
 
   getWebSocketUrl: (projectId: string) => {
     const wsBase = API_BASE_URL.replace(/^http/, "ws");
-    return `${wsBase}/ws/projects/${projectId}`;
+    const token = getStoredToken();
+    return token ? `${wsBase}/ws/projects/${projectId}?token=${encodeURIComponent(token)}` : `${wsBase}/ws/projects/${projectId}`;
   },
 
   deleteAttachment: (projectId: string, attachmentId: string) =>
