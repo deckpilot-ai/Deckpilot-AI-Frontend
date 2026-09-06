@@ -35,16 +35,21 @@ export default function WorkspacePage() {
   // Per-session in-memory message cache to prevent blank-screen reload and lost messages
   const messageCacheRef = useRef<Record<string, Message[]>>({});
   const activeProjectIdRef = useRef<string | null>(activeProjectId);
-  activeProjectIdRef.current = activeProjectId;
   const fetchCounterRef = useRef(0);
   const submittingProjectIdRef = useRef<string | null>(null);
 
-  // Synchronize routeSessionId on initial page mount or hard URL navigation
   useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
+
+  // Synchronize routeSessionId on initial page mount or hard URL navigation
+  const [prevRouteSessionId, setPrevRouteSessionId] = useState(routeSessionId);
+  if (routeSessionId !== prevRouteSessionId) {
+    setPrevRouteSessionId(routeSessionId);
     if (routeSessionId) {
       setSelectedProjectId(routeSessionId);
     }
-  }, [routeSessionId]);
+  }
 
   // Handle browser Back / Forward buttons without full-page reload
   useEffect(() => {
@@ -396,10 +401,6 @@ export default function WorkspacePage() {
     if (activeProjectId) {
       void loadProjectData(activeProjectId);
     } else {
-      setMessages([]);
-      setCurrentJob(null);
-      setDecisionQuestions(null);
-      setPlanSpec(null);
       stopPolling();
     }
   }, [activeProjectId, loadProjectData, stopPolling]);
@@ -520,7 +521,6 @@ export default function WorkspacePage() {
     setDecisionQuestions(null);
     setPlanSpec(null);
 
-    let tempUserMsgId: string | null = null;
     let uploadedAttachmentCount = 0;
     const uploadedAttachments: Attachment[] = [];
     const uploadedAttachmentIds: string[] = [];
@@ -556,7 +556,6 @@ export default function WorkspacePage() {
         created_at: Math.floor(Date.now() / 1000),
         attachments: uploadedAttachments,
       };
-      tempUserMsgId = tempUserMsg.id;
       setMessages((prev) => {
         const next = [...prev, tempUserMsg];
         if (targetProjectId) {
