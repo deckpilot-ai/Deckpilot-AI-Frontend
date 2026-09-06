@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { User, api } from "./api";
+import { User, api, getStoredToken } from "./api";
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +19,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
+    const token = getStoredToken();
+    if (!token && process.env.NODE_ENV === "production") {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     try {
       const u = await api.getMe();
       setUser(u);
@@ -31,6 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const token = getStoredToken();
+    if (!token && process.env.NODE_ENV === "production") {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     api.getMe()
       .then((currentUser) => {
         if (!cancelled) setUser(currentUser);
