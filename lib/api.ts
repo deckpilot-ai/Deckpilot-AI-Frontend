@@ -7,7 +7,7 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://deckpilotai-backend.onrender.com/api/v1"
+    ? "https://deckpilot-ai-backend.onrender.com/api/v1"
     : "http://localhost:8000/api/v1");
 
 export interface User {
