@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070a13;
+  --foreground: #f1f5f9;
+  --card: #0c1222;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: rgba(0, 134, 255, 0.3);
+  --card-hover: #111a30;
+  
+  /* TokenRouter Signature Electric Blue */
+  --tr-blue: #0086FF;
+  --tr-blue-hover: #0075ED;
+  --tr-blue-glow: rgba(0, 134, 255, 0.28);
+  --tr-blue-subtle: rgba(0, 134, 255, 0.08);
+  
+  --primary: #0086FF;
+  --primary-hover: #0075ED;
+  --primary-glow: rgba(0, 134, 255, 0.25);
+  --muted: #94a3b8;
+  --muted-dark: #475569;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.2);
+  --danger: #ef4444;
+  --success: #10b981;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* TokenRouter Background Dot Grid */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Glassmorphism surfaces */
+.glass-panel {
+  background: rgba(12, 18, 34, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+}
+
+.glass-pill {
+  background: rgba(12, 18, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+/* Glowing Highlights */
+.glow-blue {
+  box-shadow: 0 0 35px var(--tr-blue-glow);
+}
+
+.glow-blue-sm {
+  box-shadow: 0 0 16px var(--tr-blue-glow);
+}
+
+.glow-subtle {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* TokenRouter Pill Button Base */
+.tr-button-primary {
+  background-color: var(--tr-blue);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 12px rgba(0, 134, 255, 0.3);
+}
+
+.tr-button-primary:hover {
+  background-color: var(--tr-blue-hover);
+  box-shadow: 0 4px 20px rgba(0, 134, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.tr-button-secondary {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tr-button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Keep content inside flex/grid tracks while allowing wide tables to scroll. */
+html { scroll-padding-top: 8rem; }
+img, video, canvas { max-width: 100%; }
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 3px;
+}
+.workspace-shell {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.workspace-composer { padding-bottom: env(safe-area-inset-bottom); }
+.workspace-navigation { padding-bottom: env(safe-area-inset-bottom); }
+@media (max-width: 1023px) {
+  .workspace-navigation.-translate-x-full { visibility: hidden; }
+}
+@media (max-width: 639px) {
+  input, textarea, select { font-size: 16px; }
+  header > div > a { margin-right: auto; }
+}
+@media (pointer: coarse) {
+  button, a, input, select { min-height: 44px; }
+  button { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
