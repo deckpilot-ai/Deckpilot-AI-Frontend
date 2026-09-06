@@ -16,6 +16,9 @@
       "service": "deckpilot-ai-frontend"
     }
   ],
+  "vars": {
+    "NEXT_PUBLIC_API_BASE_URL": "https://deckpilotai-backend.onrender.com/api/v1"
+  },
   "observability": {
     "enabled": true
   }
