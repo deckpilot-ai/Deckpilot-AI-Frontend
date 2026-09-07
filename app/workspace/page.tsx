@@ -495,14 +495,68 @@ export default function WorkspacePage() {
     let targetProjectId = activeProjectId;
     submittingProjectIdRef.current = targetProjectId || "new-project";
 
+    // 0. INSTANT OPTIMISTIC REFLECTION (0ms): Render user's message & file chips immediately
+    const tempMsgId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const initialOptimisticAttachments: Attachment[] = (files || []).map((file, idx) => ({
+      id: `temp-att-${Date.now()}-${idx}`,
+      project_id: targetProjectId || "pending-project",
+      user_id: user?.id || "",
+      message_id: tempMsgId,
+      file_name: file.name,
+      byte_size: file.size,
+      mime_type: file.type || "application/octet-stream",
+      storage_key: "",
+      sha256: "",
+      status: "uploading",
+      ownership_flag: "user_upload",
+      created_at: Math.floor(Date.now() / 1000),
+    }));
+
+    const tempUserMsg: Message = {
+      id: tempMsgId,
+      project_id: targetProjectId || "pending-project",
+      user_id: user?.id || null,
+      role: "user",
+      content: effectiveContent,
+      created_at: Math.floor(Date.now() / 1000),
+      attachments: initialOptimisticAttachments,
+    };
+
+    setMessages((prev) => {
+      const next = [...prev, tempUserMsg];
+      if (targetProjectId) {
+        messageCacheRef.current[targetProjectId] = next;
+      }
+      return next;
+    });
+
+    setDecisionQuestions(null);
+    setPlanSpec(null);
+
+    // Initial status for immediate visual feedback
+    if (!targetProjectId) {
+      setSubmissionStatus("Creating your presentation workspace...");
+    } else if (files && files.length > 0) {
+      setSubmissionStatus(`Uploading and extracting ${files[0].name}...`);
+    } else {
+      setSubmissionStatus("Reading your request and reference material...");
+    }
+
     if (!targetProjectId) {
       try {
         const title = effectiveContent.slice(0, 40);
-        setSubmissionStatus("Creating your presentation workspace...");
         const newProj = await api.createProject({ title });
         submittingProjectIdRef.current = newProj.id;
         targetProjectId = newProj.id;
         activeProjectIdRef.current = newProj.id;
+
+        // Associate tempUserMsg with new project ID in state and cache
+        tempUserMsg.project_id = newProj.id;
+        messageCacheRef.current[newProj.id] = [tempUserMsg];
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempMsgId ? { ...m, project_id: newProj.id } : m))
+        );
+
         setProjects((prev) => [newProj, ...prev]);
         setSelectedProjectId(newProj.id);
         // Update URL to /workspace/:sessionId so page refresh maintains active session
@@ -517,16 +571,12 @@ export default function WorkspacePage() {
       }
     }
 
-    setSendingMessage(true);
-    setDecisionQuestions(null);
-    setPlanSpec(null);
-
     let uploadedAttachmentCount = 0;
     const uploadedAttachments: Attachment[] = [];
     const uploadedAttachmentIds: string[] = [];
 
     try {
-      // 1. Upload any attached reference files first so they can be immediately attached
+      // 1. Upload any attached reference files
       if (files && files.length > 0) {
         for (const file of files) {
           try {
@@ -535,6 +585,21 @@ export default function WorkspacePage() {
             uploadedAttachmentCount += 1;
             uploadedAttachments.push(att);
             uploadedAttachmentIds.push(att.id);
+
+            // Update user message with real attachment details in UI as each completes
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempMsgId
+                  ? {
+                      ...m,
+                      attachments: [
+                        ...uploadedAttachments,
+                        ...initialOptimisticAttachments.slice(uploadedAttachments.length),
+                      ],
+                    }
+                  : m
+              )
+            );
           } catch (uploadErr) {
             console.error("Failed to upload attachment", uploadErr);
             throw new Error(`Could not upload ${file.name}. Generation stopped to preserve source grounding. Please retry.`);
@@ -546,26 +611,8 @@ export default function WorkspacePage() {
         throw new Error("No attachment could be uploaded. Add a message or choose another file.");
       }
 
-      // Optimistically add user message WITH attachments
-      const tempUserMsg: Message = {
-        id: `temp-${Date.now()}`,
-        project_id: targetProjectId,
-        user_id: user?.id || null,
-        role: "user",
-        content: effectiveContent,
-        created_at: Math.floor(Date.now() / 1000),
-        attachments: uploadedAttachments,
-      };
-      setMessages((prev) => {
-        const next = [...prev, tempUserMsg];
-        if (targetProjectId) {
-          messageCacheRef.current[targetProjectId] = next;
-        }
-        return next;
-      });
-
       // 2. Route through Copilot chat with active mode (autopilot, plan, ask) and attachment IDs
-      setSubmissionStatus("Reading your request and reference material...");
+      setSubmissionStatus("Designing presentation flow & structure...");
       const chatRes = await api.sendChatMessage(
         targetProjectId,
         effectiveContent,
@@ -576,9 +623,22 @@ export default function WorkspacePage() {
 
       // 3. Persist real user message and assistant message
       setMessages((prev) => {
-        const withoutTemp = prev.map((m) =>
-          m.id === tempUserMsg.id ? chatRes.user_message : m
-        );
+        const withoutTemp = prev.map((m) => {
+          if (m.id === tempMsgId) {
+            const respAttachments = chatRes.user_message?.attachments;
+            const finalAttachments =
+              respAttachments && respAttachments.length > 0
+                ? respAttachments
+                : (uploadedAttachments && uploadedAttachments.length > 0
+                  ? uploadedAttachments
+                  : (m.attachments || []));
+            return {
+              ...chatRes.user_message,
+              attachments: finalAttachments,
+            };
+          }
+          return m;
+        });
         let next = withoutTemp;
         if (chatRes.assistant_message) {
           const alreadyInList = withoutTemp.some(
@@ -656,6 +716,11 @@ export default function WorkspacePage() {
     setSendingMessage(true);
     setWorkspaceError(null);
 
+    // Optimistically update message content in visible messages immediately
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, content: newContent } : m))
+    );
+
     try {
       // 1. Upload any new files
       const newAttachmentIds: string[] = [];
@@ -680,7 +745,13 @@ export default function WorkspacePage() {
         const targetIndex = prev.findIndex((m) => m.id === messageId);
         if (targetIndex === -1) return prev;
         const prefix = prev.slice(0, targetIndex);
-        const nextList = [...prefix, chatRes.user_message];
+        const originalMsg = prev[targetIndex];
+        const respAttachments = chatRes.user_message?.attachments;
+        const preservedAttachments =
+          respAttachments && respAttachments.length > 0
+            ? respAttachments
+            : (originalMsg.attachments || []);
+        const nextList = [...prefix, { ...chatRes.user_message, attachments: preservedAttachments }];
         if (chatRes.assistant_message) {
           nextList.push(chatRes.assistant_message);
         }
