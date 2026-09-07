@@ -69,6 +69,7 @@ export default function WorkspacePage() {
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [workspaceErrorId, setWorkspaceErrorId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Per-session in-memory message cache to prevent blank-screen reload and lost messages
   const messageCacheRef = useRef<Record<string, Message[]>>({});
@@ -520,14 +521,17 @@ export default function WorkspacePage() {
 
   // Download PPTX
   const handleDownloadDeck = async () => {
-    if (!activeProjectId) return;
+    if (!activeProjectId || isDownloading) return;
     const activeProj = projects.find((p) => p.id === activeProjectId);
     const version = activeProj?.current_deck_version || 1;
+    setIsDownloading(true);
     try {
       await api.downloadDeck(activeProjectId, version, activeProj?.title);
     } catch (err) {
       console.error("Failed to download presentation", err);
       setWorkspaceError(err instanceof Error ? err.message : "Failed to download presentation.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -1006,12 +1010,23 @@ export default function WorkspacePage() {
             {activeProject && activeProject.current_deck_version > 0 && (
               <button
                 onClick={handleDownloadDeck}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-medium transition-all cursor-pointer"
+                disabled={isDownloading}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-all ${
+                  isDownloading
+                    ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-500/50 cursor-not-allowed"
+                    : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 cursor-pointer"
+                }`}
                 aria-label="Download current PowerPoint (.PPTX)"
                 title="Download current PowerPoint (.PPTX)"
               >
-                <Download className="h-3 w-3" />
-                <span className="hidden sm:inline">Download .PPTX</span>
+                {isDownloading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3" />
+                )}
+                <span className="hidden sm:inline">
+                  {isDownloading ? "Preparing…" : "Download .PPTX"}
+                </span>
               </button>
             )}
             {!activeProject && (
@@ -1076,6 +1091,7 @@ export default function WorkspacePage() {
               planSpec={planSpec}
               onCancelJob={handleCancelJob}
               onDownloadDeck={handleDownloadDeck}
+              isDownloading={isDownloading}
               onSelectSuggestion={(prompt) => setComposerPrompt(prompt)}
               onSelectDecision={handleSelectDecision}
               onApprovePlan={handleApprovePlan}

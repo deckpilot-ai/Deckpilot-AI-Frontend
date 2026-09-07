@@ -414,6 +414,34 @@ export const api = {
 
   downloadDeck: async (projectId: string, version: number, fallbackTitle?: string) => {
     const token = getStoredToken();
+    const directUrlCheck = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download?url_only=true${
+      token ? `&token=${encodeURIComponent(token)}` : ""
+    }`;
+
+    try {
+      const resCheck = await fetch(directUrlCheck, {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+      if (resCheck.ok) {
+        const data = await resCheck.json();
+        if (data && data.download_url) {
+          const link = document.createElement("a");
+          link.href = data.download_url;
+          link.download = data.filename || `Presentation_v${version}.pptx`;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          return;
+        }
+      }
+    } catch {
+      // Fallback to streaming endpoint below if direct CDN check fails
+    }
+
     const url = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
       token ? `?token=${encodeURIComponent(token)}` : ""
     }`;

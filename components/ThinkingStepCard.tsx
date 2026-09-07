@@ -17,6 +17,7 @@ import {
   FileCode,
   ShieldCheck,
   Check,
+  Loader2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { GenerationJobInfo } from "@/lib/api";
@@ -92,6 +93,7 @@ interface ThinkingStepCardProps {
   deckVersion?: number;
   onCancel?: () => void;
   onDownload?: () => void;
+  isDownloading?: boolean;
 }
 
 export function ThinkingStepCard({
@@ -99,6 +101,7 @@ export function ThinkingStepCard({
   deckVersion = 1,
   onCancel,
   onDownload,
+  isDownloading = false,
 }: ThinkingStepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -171,10 +174,24 @@ export function ThinkingStepCard({
 
           <button
             onClick={onDownload}
-            className="flex items-center gap-2 rounded-full bg-[#0086FF] px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#0086FF]/30 hover:bg-[#0075ED] transition-all cursor-pointer w-full sm:w-auto justify-center"
+            disabled={isDownloading}
+            className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold text-white shadow-lg transition-all w-full sm:w-auto justify-center ${
+              isDownloading
+                ? "bg-[#0075ED]/70 cursor-wait opacity-85"
+                : "bg-[#0086FF] shadow-[#0086FF]/30 hover:bg-[#0075ED] cursor-pointer"
+            }`}
           >
-            <Download className="h-3.5 w-3.5" />
-            <span>Download PowerPoint (.PPTX)</span>
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Preparing Download...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" />
+                <span>Download PowerPoint (.PPTX)</span>
+              </>
+            )}
           </button>
         </div>
 

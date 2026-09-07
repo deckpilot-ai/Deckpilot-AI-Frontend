@@ -34,6 +34,7 @@ interface MessageListProps {
   planSpec?: DeckPlanSpec | null;
   onCancelJob?: () => void;
   onDownloadDeck?: () => void;
+  isDownloading?: boolean;
   onSelectSuggestion?: (text: string) => void;
   onSelectDecision?: (questionId: string, option: string) => void;
   onApprovePlan?: () => void;
