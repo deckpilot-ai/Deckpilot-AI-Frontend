@@ -650,8 +650,9 @@ export function MessageList({
                 {dq.options.map((opt, oIdx) => (
                   <button
                     key={oIdx}
+                    type="button"
                     onClick={() => onSelectDecision && onSelectDecision(dq.id, opt)}
-                    className="rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 hover:bg-[#0086FF]/25 hover:border-[#0086FF]/60 px-3 py-1 text-xs text-[#38bdf8] hover:text-white transition-all cursor-pointer shadow-sm"
+                    className="rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 hover:bg-[#0086FF]/25 hover:border-[#0086FF]/60 px-3.5 py-1.5 sm:py-1 text-xs text-[#38bdf8] hover:text-white active:scale-95 transition-all cursor-pointer shadow-sm flex items-center"
                   >
                     {opt}
                   </button>

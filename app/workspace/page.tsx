@@ -473,12 +473,16 @@ export default function WorkspacePage() {
   };
 
   // Download PPTX
-  const handleDownloadDeck = () => {
+  const handleDownloadDeck = async () => {
     if (!activeProjectId) return;
     const activeProj = projects.find((p) => p.id === activeProjectId);
     const version = activeProj?.current_deck_version || 1;
-    const downloadUrl = api.getDeckDownloadUrl(activeProjectId, version);
-    window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    try {
+      await api.downloadDeck(activeProjectId, version, activeProj?.title);
+    } catch (err) {
+      console.error("Failed to download presentation", err);
+      setWorkspaceError(err instanceof Error ? err.message : "Failed to download presentation.");
+    }
   };
 
   // Send message & trigger background generation
@@ -849,9 +853,10 @@ export default function WorkspacePage() {
     }
   };
 
-  const handleSelectDecision = (optionText: string) => {
+  const handleSelectDecision = (questionIdOrOption: string, maybeOption?: string) => {
     setDecisionQuestions(null);
-    handleSendMessage(`Selected Option: ${optionText}`);
+    const selected = maybeOption || questionIdOrOption;
+    handleSendMessage(`Selected Option: ${selected}`);
   };
 
   if (authLoading || !user) {

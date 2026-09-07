@@ -123,10 +123,21 @@ body {
 /* Keep content inside flex/grid tracks while allowing wide tables to scroll. */
 html { scroll-padding-top: 8rem; }
 img, video, canvas { max-width: 100%; }
-:where(button, a, input, textarea, select):focus-visible {
+:where(button, a):focus-visible {
   outline: 2px solid #38bdf8;
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+
 .workspace-shell {
   padding-top: env(safe-area-inset-top);
   padding-left: env(safe-area-inset-left);
@@ -140,10 +151,6 @@ img, video, canvas { max-width: 100%; }
 @media (max-width: 639px) {
   input, textarea, select { font-size: 16px; }
   header > div > a { margin-right: auto; }
-}
-@media (pointer: coarse) {
-  button, a, input, select { min-height: 44px; }
-  button { min-width: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

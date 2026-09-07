@@ -23,46 +23,54 @@ import { GenerationJobInfo } from "@/lib/api";
 
 const STAGE_METADATA: Record<
   string,
-  { label: string; desc: string; icon: LucideIcon }
+  { label: string; desc: string; agent: string; icon: LucideIcon }
 > = {
   reference_intake: {
-    label: "Reference Intake & Ingestion",
+    label: "Document Analysis & Asset Extraction",
     desc: "Ingesting reference files and analyzing document assets",
+    agent: "DocumentAnalysisAgent",
     icon: Layers,
   },
   source_grounding: {
-    label: "Source Fact Grounding",
+    label: "Fact Grounding & Research",
     desc: "Extracting factual claims, metrics, and core talking points",
+    agent: "ResearchAgent",
     icon: FileText,
   },
   font_brand_detection: {
-    label: "Brand & Style Intelligence",
-    desc: "Choosing topic-appropriate colors and presentation typography",
+    label: "Brand & Typography Intelligence",
+    desc: "Calibrating topic-appropriate colors and typography",
+    agent: "TypographyAgent",
     icon: Palette,
   },
   deck_planner: {
-    label: "Deck Architecture Planning",
-    desc: "Structuring presentation narrative arc and slide layout matrix",
+    label: "Presentation Architecture",
+    desc: "Structuring presentation narrative arc and slide matrix",
+    agent: "PresentationPlanningAgent",
     icon: LayoutTemplate,
   },
   slide_writer: {
-    label: "Slide Content Writing",
+    label: "Slide Generation & Content",
     desc: "Formulating high-impact headlines and grounded takeaways",
+    agent: "SlideGenerationAgent",
     icon: FileCode,
   },
   pptx_renderer: {
-    label: "Native 16:9 PPTX Rendering",
+    label: "Native 16:9 PPTX Layout Engine",
     desc: "Rendering widescreen slides into deterministic OpenXML shapes",
+    agent: "LayoutAgent",
     icon: Sliders,
   },
   visual_qa: {
-    label: "PPTX Structure Validation",
-    desc: "Checking slide count, canvas bounds, and file structure",
+    label: "Quality Assurance & Structure Check",
+    desc: "Checking slide count, canvas bounds, layout, and overflow",
+    agent: "QualityAgent",
     icon: ShieldCheck,
   },
   gatekeeper: {
-    label: "Packaging & Verification",
+    label: "Workspace Delivery & Assembly",
     desc: "Final delivery sign-off and presentation artifact assembly",
+    agent: "WorkspaceAgent",
     icon: CheckCircle2,
   },
 };
@@ -316,6 +324,9 @@ export function ThinkingStepCard({
                       {idx + 1}.
                     </span>
                     <span>{meta.label}</span>
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-mono text-[#38bdf8] border border-white/10 hidden sm:inline">
+                      {meta.agent}
+                    </span>
                   </div>
 
                   <div>

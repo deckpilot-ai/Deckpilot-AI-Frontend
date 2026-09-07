@@ -122,7 +122,7 @@ export function Composer({
       )}
 
       {/* Main Composer Box */}
-      <div className="relative rounded-3xl border border-white/10 bg-[#0c1222]/90 shadow-2xl backdrop-blur-xl transition-all focus-within:border-[#0086FF]/70 focus-within:ring-2 focus-within:ring-[#0086FF]/20">
+      <div className="relative rounded-3xl border border-white/10 bg-[#0c1222]/90 shadow-2xl backdrop-blur-xl transition-all duration-200 focus-within:border-[#0086FF] focus-within:ring-2 focus-within:ring-[#0086FF]/35 focus-within:shadow-[0_0_24px_rgba(0,134,255,0.22)]">
         <textarea
           aria-label="Presentation request"
           ref={textareaRef}
@@ -135,14 +135,15 @@ export function Composer({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           placeholder={dynamicPlaceholder}
-          rows={3}
-          className="w-full resize-none bg-transparent px-4 pt-3 pb-2 text-base sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
+          rows={2}
+          className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-base sm:text-sm text-slate-100 placeholder-slate-500 border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 shadow-none min-h-[50px] sm:min-h-[68px]"
+          style={{ outline: "none", boxShadow: "none" }}
         />
 
         {/* Action bar inside composer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 pb-3 pt-0.5">
           {/* Left Actions: 3-Mode Selector & File Attachment */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
             {/* 3 Modes Switcher */}
             <div className="flex items-center rounded-full border border-white/10 bg-[#080d18]/80 p-0.5">
               {(["autopilot", "plan", "ask"] as ComposerMode[]).map((m) => {
@@ -155,7 +156,7 @@ export function Composer({
                     type="button"
                     onClick={() => handleSelectMode(m)}
                     aria-pressed={isActive}
-                    className={`flex items-center gap-1.5 rounded-full px-2 sm:px-3 py-2 text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer ${
                       isActive
                         ? cfg.bgActive
                         : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
@@ -182,7 +183,7 @@ export function Composer({
               onClick={() => fileInputRef.current?.click()}
               title="Attach references (PDF, PPTX, DOCX, XLSX, images)"
               aria-label="Attach reference files"
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 sm:px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
             >
               <Paperclip className="h-3.5 w-3.5 text-[#38bdf8]" />
               <span className="hidden sm:inline">Add references</span>
@@ -190,7 +191,7 @@ export function Composer({
           </div>
 
           {/* Right Actions: Send Button */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             <span className="hidden text-[11px] text-slate-500 xl:inline font-mono">
               Enter ↵
             </span>
@@ -198,7 +199,7 @@ export function Composer({
               type="button"
               onClick={handleSend}
               disabled={disabled || (!prompt.trim() && files.length === 0)}
-              className="flex items-center gap-1.5 rounded-full bg-[#0086FF] px-5 py-2 text-xs font-semibold text-white shadow-md shadow-[#0086FF]/30 hover:bg-[#0075ED] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex items-center gap-1.5 rounded-full bg-[#0086FF] px-4 sm:px-5 py-2 text-xs font-semibold text-white shadow-md shadow-[#0086FF]/30 hover:bg-[#0075ED] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span>{activeConfig.btnText}</span>

@@ -353,8 +353,63 @@ export const api = {
   getDeckVersion: (projectId: string, version: number) =>
     request<DeckVersionInfo>(`/projects/${projectId}/decks/${version}`),
 
-  getDeckDownloadUrl: (projectId: string, version: number) =>
-    `${API_BASE_URL}/projects/${projectId}/decks/${version}/download`,
+  getDeckDownloadUrl: (projectId: string, version: number) => {
+    const token = getStoredToken();
+    return `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
+      token ? `?token=${encodeURIComponent(token)}` : ""
+    }`;
+  },
+
+  downloadDeck: async (projectId: string, version: number, fallbackTitle?: string) => {
+    const token = getStoredToken();
+    const url = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
+      token ? `?token=${encodeURIComponent(token)}` : ""
+    }`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to download presentation (${res.status} ${res.statusText})`);
+    }
+
+    // Determine filename from Content-Disposition header
+    let filename = "";
+    const disposition = res.headers.get("Content-Disposition");
+    if (disposition) {
+      const matchUtf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      if (matchUtf8 && matchUtf8[1]) {
+        filename = decodeURIComponent(matchUtf8[1]);
+      } else {
+        const matchAscii = disposition.match(/filename="?([^";]+)"?/i);
+        if (matchAscii && matchAscii[1]) {
+          filename = matchAscii[1];
+        }
+      }
+    }
+    if (!filename) {
+      const cleanTitle = (fallbackTitle || "Presentation")
+        .replace(/[\/\\:\*\?"<>|\r\n\t]+/g, "")
+        .replace(/\s+/g, "_")
+        .trim()
+        .slice(0, 50);
+      filename = `${cleanTitle || "Presentation"}_v${version}.pptx`;
+    }
+    if (!filename.toLowerCase().endsWith(".pptx")) {
+      filename += ".pptx";
+    }
+
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+  },
 
   uploadAttachment: async (projectId: string, file: File) => {
     const formData = new FormData();
