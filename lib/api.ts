@@ -500,6 +500,46 @@ export const api = {
     });
   },
 
+  getAttachment: (projectId: string, attachmentId: string) =>
+    request<Attachment>(`/projects/${projectId}/attachments/${attachmentId}`),
+
+  /**
+   * Waits until a previously uploaded attachment finishes background
+   * extraction (status "ready"). The upload endpoint returns quickly with
+   * status "pending" so large PDFs never hit hosting proxy timeouts; this
+   * polls the attachment until extraction completes or fails.
+   */
+  waitForAttachmentReady: async (
+    projectId: string,
+    attachment: Attachment,
+    opts?: { timeoutMs?: number; pollMs?: number; onPoll?: (att: Attachment) => void }
+  ): Promise<Attachment> => {
+    if (attachment.status === "ready") return attachment;
+    if (attachment.status === "failed") {
+      throw new Error(
+        `Extraction failed for ${attachment.file_name}. The file may be corrupted or password-protected. Please retry.`
+      );
+    }
+    const timeoutMs = opts?.timeoutMs ?? 10 * 60 * 1000;
+    const pollMs = opts?.pollMs ?? 3000;
+    const deadline = Date.now() + timeoutMs;
+    let current = attachment;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+      current = await api.getAttachment(projectId, attachment.id);
+      opts?.onPoll?.(current);
+      if (current.status === "ready") return current;
+      if (current.status === "failed") {
+        throw new Error(
+          `Extraction failed for ${current.file_name}. The file may be corrupted or password-protected. Please retry.`
+        );
+      }
+    }
+    throw new Error(
+      `Extraction for ${attachment.file_name} is taking longer than expected. Please try again.`
+    );
+  },
+
   // Admin: Production Logs
   listAdminLogs: (params?: {
     search?: string;

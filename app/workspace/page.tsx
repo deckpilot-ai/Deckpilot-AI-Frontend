@@ -634,11 +634,21 @@ export default function WorkspacePage() {
       if (files && files.length > 0) {
         for (const file of files) {
           try {
-            setSubmissionStatus(`Uploading and extracting ${file.name}. Large PDFs can take a few minutes...`);
+            setSubmissionStatus(`Uploading ${file.name}...`);
             const att = await api.uploadAttachment(targetProjectId, file);
+            // Extraction runs in the background on the server (uploads return
+            // with status "pending" so large PDFs never hit proxy timeouts).
+            // Wait for extraction to finish before grounding generation.
+            const readyAtt = await api.waitForAttachmentReady(targetProjectId, att, {
+              onPoll: (polled) => {
+                if (polled.status === "extracting") {
+                  setSubmissionStatus(`Extracting text and images from ${file.name}. Large PDFs can take a few minutes...`);
+                }
+              },
+            });
             uploadedAttachmentCount += 1;
-            uploadedAttachments.push(att);
-            uploadedAttachmentIds.push(att.id);
+            uploadedAttachments.push(readyAtt);
+            uploadedAttachmentIds.push(readyAtt.id);
 
             // Update user message with real attachment details in UI as each completes
             setMessages((prev) =>
@@ -656,7 +666,11 @@ export default function WorkspacePage() {
             );
           } catch (uploadErr) {
             console.error("Failed to upload attachment", uploadErr);
-            throw new Error(`Could not upload ${file.name}. Generation stopped to preserve source grounding. Please retry.`);
+            const reason =
+              uploadErr instanceof Error && uploadErr.message ? uploadErr.message : "";
+            throw new Error(
+              `Could not upload ${file.name}. Generation stopped to preserve source grounding. ${reason || "Please retry."}`
+            );
           }
         }
       }
@@ -808,8 +822,15 @@ export default function WorkspacePage() {
       const newAttachmentIds: string[] = [];
       if (newFiles && newFiles.length > 0) {
         for (const file of newFiles) {
-          setSubmissionStatus(`Uploading and extracting ${file.name}...`);
+          setSubmissionStatus(`Uploading ${file.name}...`);
           const att = await api.uploadAttachment(activeProjectId, file);
+          await api.waitForAttachmentReady(activeProjectId, att, {
+            onPoll: (polled) => {
+              if (polled.status === "extracting") {
+                setSubmissionStatus(`Extracting text and images from ${file.name}...`);
+              }
+            },
+          });
           newAttachmentIds.push(att.id);
         }
       }
