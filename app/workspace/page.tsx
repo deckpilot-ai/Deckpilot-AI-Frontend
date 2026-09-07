@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { api, Project, Message, GenerationJobInfo, DecisionQuestion, DeckPlanSpec, Attachment } from "@/lib/api";
+import { api, ApiError, Project, Message, GenerationJobInfo, DecisionQuestion, DeckPlanSpec, Attachment } from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { Composer, ComposerMode } from "@/components/Composer";
 import { MessageList } from "@/components/MessageList";
@@ -67,6 +67,7 @@ export default function WorkspacePage() {
   const [decisionQuestions, setDecisionQuestions] = useState<DecisionQuestion[] | null>(null);
   const [planSpec, setPlanSpec] = useState<DeckPlanSpec | null>(null);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [workspaceErrorId, setWorkspaceErrorId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Per-session in-memory message cache to prevent blank-screen reload and lost messages
@@ -417,6 +418,14 @@ export default function WorkspacePage() {
               }
             }).catch(() => {});
             void loadProjects();
+          } else if (data.type === "error") {
+            // Backend broadcast an error with optional error_id
+            if (activeProjectIdRef.current === currentWsProjectId) {
+              setSendingMessage(false);
+              sendingRef.current = false;
+              setWorkspaceError(data.message || "An error occurred during generation.");
+              if (data.error_id) setWorkspaceErrorId(data.error_id);
+            }
           }
         } catch {
           // Ignore parse errors
@@ -875,7 +884,10 @@ export default function WorkspacePage() {
       startPollingJob(jobRes.job_id, activeProjectId);
     } catch (err) {
       console.error("Failed to edit message", err);
-      setWorkspaceError(err instanceof Error ? err.message : "The message could not be edited.");
+      const errorMsg = err instanceof Error ? err.message : "The message could not be edited.";
+      const errorId = err instanceof ApiError ? err.errorId ?? null : null;
+      setWorkspaceError(errorMsg);
+      if (errorId) setWorkspaceErrorId(errorId);
       setSendingMessage(false);
       sendingRef.current = false;
       submittingProjectIdRef.current = null;
@@ -1030,9 +1042,22 @@ export default function WorkspacePage() {
           {workspaceError && (
             <div
               role="alert"
-              className="mx-4 mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200"
+              className="mx-4 mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200 flex items-start gap-2"
             >
-              {workspaceError}
+              <span className="flex-1">{workspaceError}</span>
+              {workspaceErrorId && (
+                <span className="shrink-0 flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] opacity-70">{workspaceErrorId}</span>
+                  <button
+                    type="button"
+                    title="Copy Error ID"
+                    onClick={() => navigator.clipboard.writeText(workspaceErrorId).catch(() => {})}
+                    className="rounded border border-red-500/40 px-1.5 py-0.5 text-[10px] hover:bg-red-500/20 transition-colors"
+                  >
+                    Copy ID
+                  </button>
+                </span>
+              )}
             </div>
           )}
           {loadingMessages ? (

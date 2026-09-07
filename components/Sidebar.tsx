@@ -11,6 +11,7 @@ import {
   Sparkles,
   ChevronRight,
   LogOut,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -128,24 +129,35 @@ export function Sidebar({
 
       {/* Footer User Menu */}
       {user && (
-        <div className="shrink-0 border-t border-white/10 p-3 flex items-center justify-between bg-[#060912]">
-          <div className="flex flex-col min-w-0 pr-2">
-            <span className="truncate text-xs font-medium text-slate-200">
-              {user.email}
-            </span>
-            <span className="text-[10px] text-slate-400 capitalize">
-              {user.role} plan
-            </span>
+        <div className="shrink-0 border-t border-white/10 p-3 flex flex-col gap-2 bg-[#060912]">
+          {user.role === "admin" && (
+            <Link
+              href="/admin/logs"
+              className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition-all"
+            >
+              <ShieldAlert className="h-3 w-3 shrink-0" />
+              Production Logs
+            </Link>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col min-w-0 pr-2">
+              <span className="truncate text-xs font-medium text-slate-200">
+                {user.email}
+              </span>
+              <span className="text-[10px] text-slate-400 capitalize">
+                {user.role} plan
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              title="Sign out"
+              aria-label="Sign out"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            title="Sign out"
-            aria-label="Sign out"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-          </button>
         </div>
       )}
     </aside>

@@ -152,13 +152,60 @@ export function setStoredToken(token: string | null): void {
   }
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  errorId?: string;
+  constructor(message: string, status: number, errorId?: string) {
     super(message);
     this.status = status;
+    this.errorId = errorId;
     this.name = "ApiError";
   }
+}
+
+export interface ApplicationLog {
+  id: string;
+  correlation_id: string;
+  fingerprint: string | null;
+  timestamp: number;
+  level: string;
+  environment: string;
+  service: string;
+  component: string | null;
+  agent_name: string | null;
+  operation: string | null;
+  endpoint: string | null;
+  http_method: string | null;
+  status_code: number | null;
+  user_id: string | null;
+  workspace_id: string | null;
+  project_id: string | null;
+  conversation_id: string | null;
+  job_id: string | null;
+  error_type: string | null;
+  error_message: string | null;
+  provider: string | null;
+  provider_status_code: number | null;
+  model_name: string | null;
+  duration_ms: number | null;
+  resolved: number;
+  resolution_notes: string | null;
+  resolved_at: number | null;
+}
+
+export interface ApplicationLogDetail extends ApplicationLog {
+  stack_trace: string | null;
+  request_data: string | null;
+  additional_context: string | null;
+  related_logs: ApplicationLog[];
+  similar_instances_count: number;
+}
+
+export interface ApplicationLogListResponse {
+  items: ApplicationLog[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 async function request<T>(
@@ -193,17 +240,22 @@ async function request<T>(
       window.dispatchEvent(new Event("deckpilotai:unauthorized"));
     }
     let errorMsg = `Request failed with status ${res.status}`;
+    let errorId: string | undefined;
     try {
       const data = await res.json();
+      if (data.error_id) errorId = data.error_id;
+      if (data.request_id && !errorId) errorId = data.request_id;
       if (data.detail) {
         errorMsg = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+      } else if (data.message) {
+        errorMsg = data.message;
       } else if (data.error?.message) {
         errorMsg = data.error.message;
       }
     } catch {
       // Ignore JSON parse error
     }
-    throw new ApiError(errorMsg, res.status);
+    throw new ApiError(errorMsg, res.status, errorId);
   }
 
   if (res.status === 204) {
@@ -419,4 +471,44 @@ export const api = {
       body: formData,
     });
   },
+
+  // Admin: Production Logs
+  listAdminLogs: (params?: {
+    search?: string;
+    correlation_id?: string;
+    level?: string;
+    service?: string;
+    agent_name?: string;
+    provider?: string;
+    environment?: string;
+    error_type?: string;
+    resolved?: number;
+    start_time?: number;
+    end_time?: number;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+      });
+    }
+    const query = qs.toString();
+    return request<ApplicationLogListResponse>(`/admin/logs${query ? `?${query}` : ""}`);
+  },
+
+  getAdminLog: (logId: string) =>
+    request<ApplicationLogDetail>(`/admin/logs/${logId}`),
+
+  updateAdminLog: (logId: string, data: { resolved: number; resolution_notes?: string }) =>
+    request<ApplicationLog>(`/admin/logs/${logId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  cleanupAdminLogs: () =>
+    request<{ success: boolean; deleted_count: number; message: string }>("/admin/logs/cleanup", {
+      method: "POST",
+    }),
 };
