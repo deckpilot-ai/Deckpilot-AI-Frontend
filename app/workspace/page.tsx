@@ -9,6 +9,43 @@ import { Composer, ComposerMode } from "@/components/Composer";
 import { MessageList } from "@/components/MessageList";
 import { Loader2, Download, Menu, X } from "lucide-react";
 
+function deriveInitialProjectTitle(content: string, files?: File[]): string {
+  if (files && files.length > 0 && files[0]?.name) {
+    const cleanName = files[0].name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+    if (cleanName.length > 1) {
+      return cleanName.length > 40 ? cleanName.slice(0, 40) : cleanName;
+    }
+  }
+
+  const trimmed = (content || "").trim();
+  if (!trimmed) return "New Presentation";
+
+  // Check if conversational, a question, or too brief to be a presentation topic
+  const words = trimmed.split(/\s+/).filter(Boolean);
+
+  // If question or interrogative inquiry
+  if (trimmed.endsWith("?") || /^(who|what|where|when|why|how|can\s+you|could\s+you|is\s+there|help)\b/i.test(trimmed)) {
+    return "New Presentation";
+  }
+
+  // If very brief without presentation keywords
+  const hasDeckKw = /(presentation|deck|slide|pitch|powerpoint|keynote|roadmap|brief|strategy|report)/i.test(trimmed);
+  if (words.length < 3 && !hasDeckKw) {
+    return "New Presentation";
+  }
+
+  // Clean prompt for title: strip common leading command phrases like "create a deck for", "make a presentation on"
+  const cleaned = trimmed
+    .replace(/^(please\s+)?(create|make|build|generate|design|draft)\s+(a\s+)?(new\s+)?(presentation|deck|slides|pitch\s*deck)?(\s+(about|on|for))?\s*/i, "")
+    .replace(/^(about|on|for)\s+/i, "")
+    .trim();
+
+  const candidate = cleaned || trimmed;
+  if (candidate.length > 45) {
+    return candidate.slice(0, 45).trim() + "...";
+  }
+  return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+}
 
 export default function WorkspacePage() {
   const { user, loading: authLoading } = useAuth();
@@ -539,16 +576,16 @@ export default function WorkspacePage() {
 
     // Initial status for immediate visual feedback
     if (!targetProjectId) {
-      setSubmissionStatus("Creating your presentation workspace...");
+      setSubmissionStatus("Initializing workspace...");
     } else if (files && files.length > 0) {
       setSubmissionStatus(`Uploading and extracting ${files[0].name}...`);
     } else {
-      setSubmissionStatus("Reading your request and reference material...");
+      setSubmissionStatus("Processing your message...");
     }
 
     if (!targetProjectId) {
       try {
-        const title = effectiveContent.slice(0, 40);
+        const title = deriveInitialProjectTitle(effectiveContent, files);
         const newProj = await api.createProject({ title });
         submittingProjectIdRef.current = newProj.id;
         targetProjectId = newProj.id;
@@ -616,7 +653,11 @@ export default function WorkspacePage() {
       }
 
       // 2. Route through Copilot chat with active mode (autopilot, plan, ask) and attachment IDs
-      setSubmissionStatus("Designing presentation flow & structure...");
+      if (uploadedAttachmentCount > 0) {
+        setSubmissionStatus("Analyzing reference materials with Copilot...");
+      } else {
+        setSubmissionStatus("Consulting Copilot...");
+      }
       const chatRes = await api.sendChatMessage(
         targetProjectId,
         effectiveContent,
@@ -666,6 +707,17 @@ export default function WorkspacePage() {
         setDecisionQuestions(chatRes.decision_questions);
       }
 
+      // If plan spec gave a real deck title, update workspace project title if currently generic
+      if (chatRes.plan_spec?.deckTitle && targetProjectId) {
+        const planTitle = chatRes.plan_spec.deckTitle;
+        const currentProject = projects.find((p) => p.id === targetProjectId);
+        if (!currentProject || currentProject.title === "New Presentation" || currentProject.title === "Untitled Presentation") {
+          api.updateProject(targetProjectId, { title: planTitle }).then((updated) => {
+            setProjects((prev) => prev.map((p) => (p.id === targetProjectId ? { ...p, title: updated.title } : p)));
+          }).catch(() => {});
+        }
+      }
+
       // 4. If mode is ask, plan, or conversational -> DO NOT trigger generation pipeline
       if (!chatRes.should_generate) {
         setCurrentJob(null);
@@ -676,8 +728,21 @@ export default function WorkspacePage() {
         return;
       }
 
+      // If generating and current title is generic, derive a title from the generation prompt
+      if (targetProjectId) {
+        const currentProject = projects.find((p) => p.id === targetProjectId);
+        if (!currentProject || currentProject.title === "New Presentation" || currentProject.title === "Untitled Presentation") {
+          const derivedTitle = deriveInitialProjectTitle(effectiveContent, files);
+          if (derivedTitle && derivedTitle !== "New Presentation") {
+            api.updateProject(targetProjectId, { title: derivedTitle }).then((updated) => {
+              setProjects((prev) => prev.map((p) => (p.id === targetProjectId ? { ...p, title: updated.title } : p)));
+            }).catch(() => {});
+          }
+        }
+      }
+
       // 5. Autopilot Presentation Intent -> Trigger asynchronous background generation job
-      setSubmissionStatus("Starting presentation generation...");
+      setSubmissionStatus("Designing presentation flow & structure...");
       const jobRes = await api.startJob(targetProjectId, {
         prompt: effectiveContent,
         mode: "generate",
