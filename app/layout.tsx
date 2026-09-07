@@ -12,7 +12,6 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover",
   interactiveWidget: "resizes-content",
   themeColor: "#070a13",
 };
@@ -38,7 +37,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
-      <body className="min-h-screen bg-[#070a13] text-slate-100 antialiased selection:bg-[#0086FF]/30 selection:text-white font-sans">
+      <body className="min-h-dvh h-full bg-[#070a13] text-slate-100 antialiased selection:bg-[#0086FF]/30 selection:text-white font-sans">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

@@ -935,7 +935,7 @@ export default function WorkspacePage() {
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
   return (
-    <div className="workspace-shell flex h-dvh w-full overflow-hidden bg-[#070a13]">
+    <div className="workspace-shell fixed inset-0 flex h-full max-h-dvh w-full overflow-hidden bg-[#070a13]">
       {/* Sidebar */}
       {mobileSidebarOpen && (
         <button

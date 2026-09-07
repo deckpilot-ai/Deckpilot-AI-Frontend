@@ -94,7 +94,7 @@ export function Composer({
   const dynamicPlaceholder = placeholder || activeConfig.placeholder;
 
   return (
-    <div className="w-full min-w-0 max-w-4xl mx-auto p-2 sm:p-4">
+    <div className="w-full min-w-0 max-w-4xl mx-auto px-2.5 pt-2 pb-1.5 sm:px-4 sm:pt-3 sm:pb-3">
       {/* File attachments preview chips */}
       {files.length > 0 && (
         <div className="mb-2.5 flex max-h-24 overflow-y-auto flex-wrap gap-2">
