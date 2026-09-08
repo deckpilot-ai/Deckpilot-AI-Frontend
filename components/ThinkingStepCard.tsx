@@ -290,17 +290,17 @@ export function ThinkingStepCard({
 
       {/* Progress Bar & Dynamic Thought Ticker */}
       <div className="mt-4 space-y-1.5">
-        <div className="flex items-center justify-between text-[10px] text-slate-400 gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#38bdf8] shrink-0 animate-pulse" />
+        <div className="flex items-center justify-between text-[11px] text-slate-300 gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="h-2 w-2 rounded-full bg-[#38bdf8] shrink-0 animate-ping" />
             <span
-
-              className="font-mono text-slate-300 truncate animate-in fade-in duration-300"
+              className="font-medium text-slate-200 truncate animate-in fade-in duration-300"
+              title={job.live_message || activeMeta.desc}
             >
-              {job.live_agent === activeStageKey && job.live_message ? job.live_message : activeMeta.desc}
+              {job.live_message || activeMeta.desc}
             </span>
           </div>
-          <span className="font-mono text-[#38bdf8] shrink-0">{percent}%</span>
+          <span className="font-mono text-[#38bdf8] font-bold shrink-0">{percent}%</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#15233e]">
           <div
@@ -316,7 +316,7 @@ export function ThinkingStepCard({
           onClick={() => setExpanded(!expanded)}
           className="flex w-full items-center justify-between text-[11px] text-slate-400 hover:text-slate-200 transition-colors cursor-pointer py-1"
         >
-          <span>View all 8 agent pipeline stages</span>
+          <span>View all 8 agent pipeline stages & live extraction details</span>
           {expanded ? (
             <ChevronUp className="h-3.5 w-3.5" />
           ) : (
@@ -325,45 +325,54 @@ export function ThinkingStepCard({
         </button>
 
         {expanded && (
-          <div className="mt-2.5 space-y-1.5 rounded-2xl bg-[#080d18] p-3.5 border border-white/10">
+          <div className="mt-2.5 space-y-2 rounded-2xl bg-[#080d18] p-3.5 border border-white/10">
             {STAGE_KEYS.map((key, idx) => {
               const taskInfo = job.tasks.find((t) => t.agent_type === key);
               const meta = STAGE_METADATA[key];
               const isCompleted = taskInfo?.status === "completed";
               const isRunning = taskInfo?.status === "running";
+              const stageMsg = isRunning && job.live_agent === key && job.live_message ? job.live_message : null;
 
               return (
                 <div
                   key={key}
-                  className={`flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition-colors ${
+                  className={`flex flex-col rounded-xl px-3 py-2 text-xs transition-colors ${
                     isRunning
-                      ? "bg-[#0086FF]/20 text-white font-medium border border-[#0086FF]/40"
+                      ? "bg-[#0086FF]/20 text-white font-medium border border-[#0086FF]/40 shadow-sm shadow-[#0086FF]/10"
                       : isCompleted
-                      ? "text-slate-300"
+                      ? "text-slate-300 bg-white/[0.02]"
                       : "text-slate-400 opacity-60"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-400 w-3">
-                      {idx + 1}.
-                    </span>
-                    <span>{meta.label}</span>
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-mono text-[#38bdf8] border border-white/10 hidden sm:inline">
-                      {meta.agent}
-                    </span>
-                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-400 w-3">
+                        {idx + 1}.
+                      </span>
+                      <span>{meta.label}</span>
+                      <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-mono text-[#38bdf8] border border-white/10 hidden sm:inline">
+                        {meta.agent}
+                      </span>
+                    </div>
 
-                  <div>
-                    {isCompleted && (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                    )}
-                    {isRunning && (
-                      <Sparkles className="h-3.5 w-3.5 text-[#38bdf8] animate-spin" />
-                    )}
-                    {!isCompleted && !isRunning && (
-                      <span className="text-[10px] text-slate-400">pending</span>
-                    )}
+                    <div>
+                      {isCompleted && (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      )}
+                      {isRunning && (
+                        <Loader2 className="h-3.5 w-3.5 text-[#38bdf8] animate-spin" />
+                      )}
+                      {!isCompleted && !isRunning && (
+                        <span className="text-[10px] text-slate-500">pending</span>
+                      )}
+                    </div>
                   </div>
+                  {stageMsg && (
+                    <div className="mt-1 pl-5 text-[11px] font-mono text-[#38bdf8] flex items-center gap-1.5 animate-pulse">
+                      <span>↳</span>
+                      <span className="truncate">{stageMsg}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -433,10 +433,18 @@ export default function WorkspacePage() {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "agent_task" && data.agent_type !== "job_completed") {
+          if (data.type === "attachment_progress") {
             if (activeProjectIdRef.current === currentWsProjectId) {
               setCurrentJob((prev) => {
-                if (!prev || prev.id !== data.job_id) return prev;
+                if (!prev) return prev;
+                return { ...prev, live_message: data.message, live_agent: "reference_intake" };
+              });
+            }
+          } else if (data.type === "agent_task" && data.agent_type !== "job_completed") {
+            if (activeProjectIdRef.current === currentWsProjectId) {
+              setCurrentJob((prev) => {
+                if (!prev) return prev;
+                if (data.job_id && prev.id && prev.id !== data.job_id) return prev;
                 const tasks = [...prev.tasks];
                 const idx = tasks.findIndex((t) => t.agent_type === data.agent_type);
                 const now = Math.floor(Date.now() / 1000);
