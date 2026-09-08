@@ -636,19 +636,30 @@ export default function WorkspacePage() {
           try {
             setSubmissionStatus(`Uploading ${file.name}...`);
             const att = await api.uploadAttachment(targetProjectId, file);
-            // Extraction runs in the background on the server (uploads return
-            // with status "pending" so large PDFs never hit proxy timeouts).
-            // Wait for extraction to finish before grounding generation.
-            const readyAtt = await api.waitForAttachmentReady(targetProjectId, att, {
-              onPoll: (polled) => {
-                if (polled.status === "extracting") {
-                  setSubmissionStatus(`Extracting text and images from ${file.name}. Large PDFs can take a few minutes...`);
-                }
-              },
-            });
             uploadedAttachmentCount += 1;
-            uploadedAttachments.push(readyAtt);
-            uploadedAttachmentIds.push(readyAtt.id);
+            let currentAtt = att;
+
+            // In Plan or Ask mode, we need extracted text immediately for interactive chat reasoning.
+            // In Autopilot (deck generation) mode, the background job orchestrator's reference_intake
+            // stage handles extraction asynchronously with live WebSocket updates without hitting client timeouts!
+            if (mode !== "autopilot") {
+              try {
+                const readyAtt = await api.waitForAttachmentReady(targetProjectId, att, {
+                  timeoutMs: 30000,
+                  onPoll: (polled) => {
+                    if (polled.status === "extracting") {
+                      setSubmissionStatus(`Extracting text and images from ${file.name}...`);
+                    }
+                  },
+                });
+                currentAtt = readyAtt;
+              } catch (waitErr) {
+                console.warn("Continuing with background extraction for conversation", waitErr);
+              }
+            }
+
+            uploadedAttachments.push(currentAtt);
+            uploadedAttachmentIds.push(currentAtt.id);
 
             // Update user message with real attachment details in UI as each completes
             setMessages((prev) =>
@@ -669,7 +680,7 @@ export default function WorkspacePage() {
             const reason =
               uploadErr instanceof Error && uploadErr.message ? uploadErr.message : "";
             throw new Error(
-              `Could not upload ${file.name}. Generation stopped to preserve source grounding. ${reason || "Please retry."}`
+              `Could not upload ${file.name}. ${reason || "Please retry."}`
             );
           }
         }
@@ -824,14 +835,21 @@ export default function WorkspacePage() {
         for (const file of newFiles) {
           setSubmissionStatus(`Uploading ${file.name}...`);
           const att = await api.uploadAttachment(activeProjectId, file);
-          await api.waitForAttachmentReady(activeProjectId, att, {
-            onPoll: (polled) => {
-              if (polled.status === "extracting") {
-                setSubmissionStatus(`Extracting text and images from ${file.name}...`);
-              }
-            },
-          });
           newAttachmentIds.push(att.id);
+          if (activeMode !== "autopilot") {
+            try {
+              await api.waitForAttachmentReady(activeProjectId, att, {
+                timeoutMs: 30000,
+                onPoll: (polled) => {
+                  if (polled.status === "extracting") {
+                    setSubmissionStatus(`Extracting text and images from ${file.name}...`);
+                  }
+                },
+              });
+            } catch (pollErr) {
+              console.warn("Continuing with background extraction for edit", pollErr);
+            }
+          }
         }
       }
 
