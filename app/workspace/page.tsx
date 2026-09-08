@@ -286,15 +286,13 @@ export default function WorkspacePage() {
           }
         } catch (pollErr) {
           consecutiveFailures += 1;
-          // In production with background jobs or cold starts, don't abort after just 5 blips
-          // Allow up to 25 attempts (~40s) with increasing backoff, and if completely lost,
-          // update the job status cleanly rather than hanging the step card in "running"
-          if (consecutiveFailures >= 25) {
+          // In production with large PDF extraction or long jobs, temporary network hiccups should not abort polling
+          if (consecutiveFailures >= 120) {
             stopPolling();
             sendingRef.current = false;
             setSendingMessage(false);
             if (activeProjectIdRef.current === projectId) {
-              setCurrentJob((prev) => prev ? { ...prev, status: "permanently_failed" } : null);
+              setCurrentJob((prev) => (prev ? { ...prev, status: "permanently_failed" } : null));
               setWorkspaceError(null);
             }
             return;
@@ -302,12 +300,12 @@ export default function WorkspacePage() {
         }
 
         if (pollGenerationRef.current === pollGeneration) {
-          const delay = consecutiveFailures > 3 ? Math.min(3000, 1200 + consecutiveFailures * 250) : 1200;
+          const delay = consecutiveFailures > 2 ? 2500 : 1500;
           pollTimerRef.current = setTimeout(poll, delay);
         }
       };
 
-      pollTimerRef.current = setTimeout(poll, 1200);
+      pollTimerRef.current = setTimeout(poll, 1500);
     },
     [stopPolling, loadProjects]
   );
