@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
 import { Sparkles, ArrowRight, Lock, Mail, AlertCircle, Loader2 } from "lucide-react";
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +23,15 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
+      try {
+        const me = await api.getMe();
+        if (me.role === "admin") {
+          router.push("/admin/providers");
+          return;
+        }
+      } catch {
+        // Default to workspace if getMe check fails
+      }
       router.push("/workspace");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -56,11 +67,12 @@ export default function LoginPage() {
       {/* Glassmorphic Card */}
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0c1222]/90 p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-white tracking-tight">Welcome back</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">Sign in to your account</h1>
           <p className="mt-1 text-xs text-slate-400">
-            Sign in to access your AI presentation workspace
+            Access your AI presentations or administrator control console
           </p>
         </div>
+
 
         {error && (
           <div role="alert" aria-live="polite" className="mb-5 flex items-center gap-2.5 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">

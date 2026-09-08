@@ -68,11 +68,16 @@ export function Header() {
                 <UserIcon className="h-3 w-3 text-slate-400" />
                 <span className="max-w-[120px] truncate">{user.email}</span>
                 {user.role === "admin" && (
-                  <span className="rounded-full bg-[#0086FF]/20 px-1.5 py-0.2 text-[9px] font-semibold text-[#38bdf8] border border-[#0086FF]/30">
-                    ADMIN
-                  </span>
+                  <Link
+                    href="/admin/providers"
+                    className="flex items-center gap-1 rounded-full bg-[#0086FF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#38bdf8] border border-[#0086FF]/30 hover:bg-[#0086FF]/30 transition-colors"
+                    title="AI Provider & Model Configuration"
+                  >
+                    <span>ADMIN AI</span>
+                  </Link>
                 )}
               </div>
+
               <button
                 onClick={logout}
                 title="Log out"

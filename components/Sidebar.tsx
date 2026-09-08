@@ -12,7 +12,9 @@ import {
   ChevronRight,
   LogOut,
   ShieldAlert,
+  Cpu,
 } from "lucide-react";
+
 import { useAuth } from "@/lib/auth-context";
 
 interface SidebarProps {
@@ -131,14 +133,24 @@ export function Sidebar({
       {user && (
         <div className="shrink-0 border-t border-white/10 p-3 flex flex-col gap-2 bg-[#060912]">
           {user.role === "admin" && (
-            <Link
-              href="/admin/logs"
-              className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition-all"
-            >
-              <ShieldAlert className="h-3 w-3 shrink-0" />
-              Production Logs
-            </Link>
+            <div className="flex flex-col gap-1.5">
+              <Link
+                href="/admin/providers"
+                className="flex items-center gap-2 rounded-lg border border-[#0086FF]/30 bg-[#0086FF]/10 px-3 py-1.5 text-[11px] font-medium text-[#38bdf8] hover:bg-[#0086FF]/20 transition-all"
+              >
+                <Cpu className="h-3 w-3 shrink-0" />
+                AI Providers & Models
+              </Link>
+              <Link
+                href="/admin/logs"
+                className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition-all"
+              >
+                <ShieldAlert className="h-3 w-3 shrink-0" />
+                Production Logs
+              </Link>
+            </div>
           )}
+
           <div className="flex items-center justify-between">
             <div className="flex flex-col min-w-0 pr-2">
               <span className="truncate text-xs font-medium text-slate-200">

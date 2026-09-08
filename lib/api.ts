@@ -201,12 +201,57 @@ export interface ApplicationLogDetail extends ApplicationLog {
   similar_instances_count: number;
 }
 
+export interface AIKeyInfo {
+  id: string;
+  label: string;
+  enabled: boolean;
+  cooldown_until: number | null;
+  failure_count: number;
+  last_used_at: number | null;
+}
+
+export interface AIProviderModelInfo {
+  id: string;
+  model_id: string;
+  display_name: string | null;
+  priority: number;
+  enabled: boolean;
+  context_length: number | null;
+  created_at?: number;
+}
+
+export interface AIProviderInfo {
+  id: string;
+  name: string;
+  base_url: string;
+  provider_type: string;
+  enabled: boolean;
+  priority: number;
+  keys: AIKeyInfo[];
+  models: AIProviderModelInfo[];
+}
+
+export interface DiscoveredModel {
+  id: string;
+  name: string;
+  context_length: number | null;
+  description: string | null;
+  default_priority?: number;
+}
+
+export interface FetchModelsResult {
+  base_url: string;
+  total: number;
+  models: DiscoveredModel[];
+}
+
 export interface ApplicationLogListResponse {
   items: ApplicationLog[];
   total: number;
   limit: number;
   offset: number;
 }
+
 
 async function request<T>(
   path: string,
@@ -579,4 +624,124 @@ export const api = {
     request<{ success: boolean; deleted_count: number; message: string }>("/admin/logs/cleanup", {
       method: "POST",
     }),
+
+  // Admin: AI Providers & Dynamic Model Configuration
+  listProviders: () => request<AIProviderInfo[]>("/admin/providers"),
+
+  getProvidersStatus: () =>
+    request<{
+      providers: Array<{
+        id?: string;
+        name: string;
+        base_url: string;
+        enabled: boolean;
+        active_keys: number;
+        configured_models: number;
+        priority: number;
+      }>;
+      openrouter_cascade_active: boolean;
+      experientiallabs_cascade_active: boolean;
+      total_free_models_discovered: number;
+      available_free_models_count: number;
+      top_model: string | null;
+    }>("/admin/providers/status"),
+
+  createProvider: (data: {
+    name: string;
+    base_url: string;
+    provider_type?: string;
+    priority?: number;
+    api_key?: string;
+    key_label?: string;
+    models?: Array<{ model_id: string; display_name?: string; priority?: number; enabled?: number }>;
+  }) =>
+    request<{ id: string; name: string; status: string }>("/admin/providers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateProvider: (
+    providerId: string,
+    data: {
+      name?: string;
+      base_url?: string;
+      provider_type?: string;
+      priority?: number;
+      enabled?: number;
+    }
+  ) =>
+    request<{ id: string; name: string; status: string }>(`/admin/providers/${providerId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteProvider: (providerId: string) =>
+    request<void>(`/admin/providers/${providerId}`, {
+      method: "DELETE",
+    }),
+
+  fetchProviderModels: (data: {
+    base_url?: string;
+    api_key?: string;
+    provider_id?: string;
+    provider_type?: string;
+  }) =>
+    request<FetchModelsResult>("/admin/providers/fetch-models", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getProviderModels: (providerId: string) =>
+    request<AIProviderModelInfo[]>(`/admin/providers/${providerId}/models`),
+
+  saveProviderModels: (
+    providerId: string,
+    models: Array<{
+      model_id: string;
+      display_name?: string;
+      priority?: number;
+      enabled?: number | boolean;
+      context_length?: number | null;
+    }>
+  ) =>
+    request<{ message: string; models: AIProviderModelInfo[] }>(`/admin/providers/${providerId}/models`, {
+      method: "POST",
+      body: JSON.stringify({ models }),
+    }),
+
+  updateModelPriority: (
+    providerId: string,
+    modelDbId: string,
+    data: { priority?: number; enabled?: number; display_name?: string }
+  ) =>
+    request<{ id: string; model_id: string; priority: number; enabled: boolean; status: string }>(
+      `/admin/providers/${providerId}/models/${modelDbId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    ),
+
+  deleteProviderModel: (providerId: string, modelDbId: string) =>
+    request<void>(`/admin/providers/${providerId}/models/${modelDbId}`, {
+      method: "DELETE",
+    }),
+
+  addProviderKey: (providerId: string, data: { label: string; secret: string }) =>
+    request<{ id: string; label: string; status: string }>(`/admin/providers/${providerId}/keys`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  rotateProviderKey: (providerId: string, keyId: string, data: { secret: string; label?: string }) =>
+    request<{ id: string; label: string; status: string }>(`/admin/providers/${providerId}/keys/${keyId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  revokeProviderKey: (providerId: string, keyId: string) =>
+    request<void>(`/admin/providers/${providerId}/keys/${keyId}`, {
+      method: "DELETE",
+    }),
 };
+
