@@ -280,25 +280,30 @@ export default function WorkspacePage() {
             sendingRef.current = false;
             setSendingMessage(false);
             if (activeProjectIdRef.current === projectId) {
-              setWorkspaceError("Presentation generation did not complete. You can retry safely.");
+              setWorkspaceError(null);
             }
             return;
           }
-        } catch {
+        } catch (pollErr) {
           consecutiveFailures += 1;
-          if (consecutiveFailures >= 5) {
+          // In production with background jobs or cold starts, don't abort after just 5 blips
+          // Allow up to 25 attempts (~40s) with increasing backoff, and if completely lost,
+          // update the job status cleanly rather than hanging the step card in "running"
+          if (consecutiveFailures >= 25) {
             stopPolling();
             sendingRef.current = false;
             setSendingMessage(false);
             if (activeProjectIdRef.current === projectId) {
-              setWorkspaceError("Generation status could not be reached. Check your connection and retry.");
+              setCurrentJob((prev) => prev ? { ...prev, status: "permanently_failed" } : null);
+              setWorkspaceError(null);
             }
             return;
           }
         }
 
         if (pollGenerationRef.current === pollGeneration) {
-          pollTimerRef.current = setTimeout(poll, 1200);
+          const delay = consecutiveFailures > 3 ? Math.min(3000, 1200 + consecutiveFailures * 250) : 1200;
+          pollTimerRef.current = setTimeout(poll, delay);
         }
       };
 

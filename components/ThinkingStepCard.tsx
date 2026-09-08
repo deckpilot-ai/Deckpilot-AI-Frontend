@@ -229,10 +229,17 @@ export function ThinkingStepCard({
   // 3. Failed State
   if (job.status === "permanently_failed") {
     return (
-      <div className="my-4 rounded-3xl border border-red-500/30 bg-[#1e0e12] p-4 text-xs text-red-300 flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <XCircle className="h-4 w-4 text-red-400" />
-          <span>Generation failed. Please refine your prompt or retry.</span>
+      <div className="my-4 rounded-3xl border border-red-500/30 bg-[#1e0e12] p-4 sm:p-5 text-xs text-red-300 shadow-xl backdrop-blur-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+              <XCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="font-semibold text-white">Generation stopped</span>
+              <p className="text-slate-400 text-xs mt-0.5">Generation failed. Please refine your prompt or retry.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
