@@ -71,11 +71,58 @@ export default function WorkspacePage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Per-session in-memory message cache to prevent blank-screen reload and lost messages
+  // Per-session fast cache (in-memory + sessionStorage) for instant 0ms conversation load
   const messageCacheRef = useRef<Record<string, Message[]>>({});
   const activeProjectIdRef = useRef<string | null>(activeProjectId);
   const fetchCounterRef = useRef(0);
   const submittingProjectIdRef = useRef<string | null>(null);
+
+  const getCachedMessages = useCallback((projectId: string): Message[] | null => {
+    if (messageCacheRef.current[projectId] && messageCacheRef.current[projectId].length > 0) {
+      return messageCacheRef.current[projectId];
+    }
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        const raw = window.sessionStorage.getItem(`dp_msgs_${projectId}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            messageCacheRef.current[projectId] = parsed;
+            return parsed;
+          }
+        }
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const saveCachedMessages = useCallback((projectId: string, msgs: Message[]) => {
+    messageCacheRef.current[projectId] = msgs;
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.setItem(`dp_msgs_${projectId}`, JSON.stringify(msgs.slice(-100)));
+      }
+    } catch {}
+  }, []);
+
+  const clearCachedMessages = useCallback((projectId: string) => {
+    delete messageCacheRef.current[projectId];
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.removeItem(`dp_msgs_${projectId}`);
+      }
+    } catch {}
+  }, []);
+
+  const mergeMessagesWithPending = useCallback((incoming: Message[], current: Message[]): Message[] => {
+    const pendingOptimistic = current.filter((m) => m.id.startsWith("temp-"));
+    if (pendingOptimistic.length === 0) {
+      return incoming;
+    }
+    const incomingIds = new Set(incoming.map((m) => m.id));
+    const stillPending = pendingOptimistic.filter((m) => !incomingIds.has(m.id));
+    return [...incoming, ...stillPending];
+  }, []);
 
   useEffect(() => {
     activeProjectIdRef.current = activeProjectId;
@@ -209,9 +256,9 @@ export default function WorkspacePage() {
 
             // Fetch authoritative messages for the target project and cache them
             api.listMessages(projectId).then((msgs) => {
-              messageCacheRef.current[projectId] = msgs;
+              saveCachedMessages(projectId, msgs);
               if (activeProjectIdRef.current === projectId) {
-                setMessages(msgs);
+                setMessages((prev) => mergeMessagesWithPending(msgs, prev));
               }
             }).catch(() => {});
 
@@ -275,9 +322,10 @@ export default function WorkspacePage() {
       setDecisionQuestions(null);
       setPlanSpec(null);
 
-      // 1. Immediately display cached messages if available (zero screen blanking)
-      if (messageCacheRef.current[projectId]) {
-        setMessages(messageCacheRef.current[projectId]);
+      // 1. Immediately display cached messages with 0ms delay (zero blanking)
+      const cached = getCachedMessages(projectId);
+      if (cached && cached.length > 0) {
+        setMessages((prev) => mergeMessagesWithPending(cached, prev));
         setLoadingMessages(false);
       } else {
         setMessages([]);
@@ -293,7 +341,7 @@ export default function WorkspacePage() {
         ]);
 
         // Always store authoritative messages into cache
-        messageCacheRef.current[projectId] = msgs;
+        saveCachedMessages(projectId, msgs);
 
         // If the user has switched sessions while fetching, avoid overwriting visible UI
         if (fetchCounterRef.current !== reqId || activeProjectIdRef.current !== projectId) {
@@ -308,7 +356,7 @@ export default function WorkspacePage() {
           return;
         }
 
-        setMessages(msgs);
+        setMessages((prev) => mergeMessagesWithPending(msgs, prev));
         setWorkspaceError(null);
 
         // Check if there is an active or latest job for this project
@@ -413,9 +461,9 @@ export default function WorkspacePage() {
               sendingRef.current = false;
             }
             api.listMessages(currentWsProjectId).then((msgs) => {
-              messageCacheRef.current[currentWsProjectId] = msgs;
+              saveCachedMessages(currentWsProjectId, msgs);
               if (activeProjectIdRef.current === currentWsProjectId) {
-                setMessages(msgs);
+                setMessages((prev) => mergeMessagesWithPending(msgs, prev));
               }
             }).catch(() => {});
             void loadProjects();
@@ -489,9 +537,8 @@ export default function WorkspacePage() {
     }
     try {
       await api.deleteProject(id);
-      delete messageCacheRef.current[id];
-      const remaining = projects.filter((p) => p.id !== id);
-      setProjects(remaining);
+      clearCachedMessages(id);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
       if (activeProjectId === id) {
         window.history.pushState(null, "", "/workspace");
         setSelectedProjectId(null);
@@ -579,7 +626,7 @@ export default function WorkspacePage() {
     setMessages((prev) => {
       const next = [...prev, tempUserMsg];
       if (targetProjectId) {
-        messageCacheRef.current[targetProjectId] = next;
+        saveCachedMessages(targetProjectId, next);
       }
       return next;
     });
@@ -606,7 +653,7 @@ export default function WorkspacePage() {
 
         // Associate tempUserMsg with new project ID in state and cache
         tempUserMsg.project_id = newProj.id;
-        messageCacheRef.current[newProj.id] = [tempUserMsg];
+        saveCachedMessages(newProj.id, [tempUserMsg]);
         setMessages((prev) =>
           prev.map((m) => (m.id === tempMsgId ? { ...m, project_id: newProj.id } : m))
         );
@@ -732,7 +779,7 @@ export default function WorkspacePage() {
           }
         }
         if (targetProjectId) {
-          messageCacheRef.current[targetProjectId] = next;
+          saveCachedMessages(targetProjectId, next);
         }
         return next;
       });
@@ -877,7 +924,7 @@ export default function WorkspacePage() {
           nextList.push(chatRes.assistant_message);
         }
         if (activeProjectId) {
-          messageCacheRef.current[activeProjectId] = nextList;
+          saveCachedMessages(activeProjectId, nextList);
         }
         return nextList;
       });
