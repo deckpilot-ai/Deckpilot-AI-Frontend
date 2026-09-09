@@ -16,9 +16,9 @@
       "service": "deckpilot-ai-frontend"
     }
   ],
-  "vars": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://deckpilot-ai.duckdns.org/api/v1"
-  },
+  // NEXT_PUBLIC_API_BASE_URL is injected at deploy time by deploy.ps1 from .env.production
+  // Do NOT hardcode the URL here. Run: .\deploy.ps1 to deploy.
+  "vars": {},
   "observability": {
     "enabled": true
   }

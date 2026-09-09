@@ -7,7 +7,7 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://deckpilot-ai.duckdns.org/api/v1"
+    ? (() => { throw new Error("NEXT_PUBLIC_API_BASE_URL is not set"); })()
     : "http://localhost:8000/api/v1");
 
 export interface User {
