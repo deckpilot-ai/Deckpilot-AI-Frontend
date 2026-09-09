@@ -459,90 +459,27 @@ export const api = {
 
   downloadDeck: async (projectId: string, version: number, fallbackTitle?: string) => {
     const token = getStoredToken();
-    let filename = (fallbackTitle || "Presentation")
+    const cleanTitle = (fallbackTitle || "Presentation")
       .replace(/[\/\\:\*\?"<>|\r\n\t]+/g, "")
       .replace(/\s+/g, "_")
       .trim()
-      .slice(0, 60);
-    if (!filename) filename = "Presentation";
-    if (!filename.toLowerCase().endsWith(".pptx")) {
-      filename = `${filename}_v${version}.pptx`;
-    }
+      .slice(0, 50) || "Presentation";
+    const filename = cleanTitle.toLowerCase().endsWith(".pptx") ? cleanTitle : `${cleanTitle}_v${version}.pptx`;
 
-    const directUrlCheck = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download?url_only=true${
-      token ? `&token=${encodeURIComponent(token)}` : ""
+    const downloadUrl = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
+      token ? `?token=${encodeURIComponent(token)}` : ""
     }`;
 
-    let blob: Blob | null = null;
-
-    try {
-      const resCheck = await fetch(directUrlCheck, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: "include",
-      });
-      if (resCheck.ok) {
-        const data = await resCheck.json();
-        if (data && data.filename) {
-          filename = data.filename;
-          if (!filename.toLowerCase().endsWith(".pptx")) filename += ".pptx";
-        }
-        if (data && data.download_url) {
-          const r2Res = await fetch(data.download_url);
-          if (r2Res.ok) {
-            blob = await r2Res.blob();
-          }
-        }
-      }
-    } catch {
-      // Fallback to streaming endpoint below if direct CDN check fails
-    }
-
-    if (!blob) {
-      const url = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
-        token ? `?token=${encodeURIComponent(token)}` : ""
-      }`;
-      const res = await fetch(url, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to download presentation (${res.status} ${res.statusText})`);
-      }
-
-      const disposition = res.headers.get("Content-Disposition");
-      if (disposition) {
-        const matchUtf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-        if (matchUtf8 && matchUtf8[1]) {
-          filename = decodeURIComponent(matchUtf8[1]);
-        } else {
-          const matchAscii = disposition.match(/filename="?([^";]+)"?/i);
-          if (matchAscii && matchAscii[1]) {
-            filename = matchAscii[1];
-          }
-        }
-      }
-      blob = await res.blob();
-    }
-
-    if (!filename.toLowerCase().endsWith(".pptx")) {
-      filename += ".pptx";
-    }
-
-    // Force application/vnd.openxmlformats-officedocument.presentationml.presentation MIME type
-    const pptxBlob = new Blob([blob], {
-      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    });
-
-    const blobUrl = window.URL.createObjectURL(pptxBlob);
+    // Direct browser-level download trigger
     const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = filename;
+    link.href = downloadUrl;
+    link.setAttribute("download", filename);
+    link.style.display = "none";
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+    setTimeout(() => {
+      link.remove();
+    }, 1500);
   },
 
   uploadAttachment: async (projectId: string, file: File) => {
