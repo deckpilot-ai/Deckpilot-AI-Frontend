@@ -459,9 +459,21 @@ export const api = {
 
   downloadDeck: async (projectId: string, version: number, fallbackTitle?: string) => {
     const token = getStoredToken();
+    let filename = (fallbackTitle || "Presentation")
+      .replace(/[\/\\:\*\?"<>|\r\n\t]+/g, "")
+      .replace(/\s+/g, "_")
+      .trim()
+      .slice(0, 60);
+    if (!filename) filename = "Presentation";
+    if (!filename.toLowerCase().endsWith(".pptx")) {
+      filename = `${filename}_v${version}.pptx`;
+    }
+
     const directUrlCheck = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download?url_only=true${
       token ? `&token=${encodeURIComponent(token)}` : ""
     }`;
+
+    let blob: Blob | null = null;
 
     try {
       const resCheck = await fetch(directUrlCheck, {
@@ -471,69 +483,66 @@ export const api = {
       });
       if (resCheck.ok) {
         const data = await resCheck.json();
+        if (data && data.filename) {
+          filename = data.filename;
+          if (!filename.toLowerCase().endsWith(".pptx")) filename += ".pptx";
+        }
         if (data && data.download_url) {
-          const link = document.createElement("a");
-          link.href = data.download_url;
-          link.download = data.filename || `Presentation_v${version}.pptx`;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          return;
+          const r2Res = await fetch(data.download_url);
+          if (r2Res.ok) {
+            blob = await r2Res.blob();
+          }
         }
       }
     } catch {
       // Fallback to streaming endpoint below if direct CDN check fails
     }
 
-    const url = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
-      token ? `?token=${encodeURIComponent(token)}` : ""
-    }`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: "include",
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to download presentation (${res.status} ${res.statusText})`);
-    }
+    if (!blob) {
+      const url = `${API_BASE_URL}/projects/${projectId}/decks/${version}/download${
+        token ? `?token=${encodeURIComponent(token)}` : ""
+      }`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to download presentation (${res.status} ${res.statusText})`);
+      }
 
-    // Determine filename from Content-Disposition header
-    let filename = "";
-    const disposition = res.headers.get("Content-Disposition");
-    if (disposition) {
-      const matchUtf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-      if (matchUtf8 && matchUtf8[1]) {
-        filename = decodeURIComponent(matchUtf8[1]);
-      } else {
-        const matchAscii = disposition.match(/filename="?([^";]+)"?/i);
-        if (matchAscii && matchAscii[1]) {
-          filename = matchAscii[1];
+      const disposition = res.headers.get("Content-Disposition");
+      if (disposition) {
+        const matchUtf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (matchUtf8 && matchUtf8[1]) {
+          filename = decodeURIComponent(matchUtf8[1]);
+        } else {
+          const matchAscii = disposition.match(/filename="?([^";]+)"?/i);
+          if (matchAscii && matchAscii[1]) {
+            filename = matchAscii[1];
+          }
         }
       }
+      blob = await res.blob();
     }
-    if (!filename) {
-      const cleanTitle = (fallbackTitle || "Presentation")
-        .replace(/[\/\\:\*\?"<>|\r\n\t]+/g, "")
-        .replace(/\s+/g, "_")
-        .trim()
-        .slice(0, 50);
-      filename = `${cleanTitle || "Presentation"}_v${version}.pptx`;
-    }
+
     if (!filename.toLowerCase().endsWith(".pptx")) {
       filename += ".pptx";
     }
 
-    const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
+    // Force application/vnd.openxmlformats-officedocument.presentationml.presentation MIME type
+    const pptxBlob = new Blob([blob], {
+      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+
+    const blobUrl = window.URL.createObjectURL(pptxBlob);
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
   },
 
   uploadAttachment: async (projectId: string, file: File) => {
