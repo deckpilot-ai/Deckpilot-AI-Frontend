@@ -43,6 +43,43 @@ export interface AgentTaskInfo {
   status: "pending" | "running" | "completed" | "failed" | "cancelled";
   started_at: number | null;
   completed_at: number | null;
+  live_message?: string | null;
+  progress_events?: GenerationProgressEvent[];
+}
+
+export interface QAFinding {
+  checkpoint_id: string;
+  severity: string;
+  slide_number: number;
+  message: string;
+  repair_action?: string | null;
+}
+
+export interface QASummary {
+  pass_number: number;
+  score: number;
+  status: string;
+  checkpoints_total: number;
+  checkpoints_passed: number;
+  checkpoints_failed: number;
+  repair_triggered: boolean;
+  findings: QAFinding[];
+}
+
+export interface GenerationProgressEvent {
+  event_id: string;
+  sequence: number;
+  timestamp: number;
+  agent_type: string;
+  status: string;
+  message: string;
+  current_step: number;
+  total_steps: number;
+  progress_percent: number;
+  phase?: string;
+  pass_number?: number;
+  repair_iteration?: number;
+  qa_summary?: QASummary;
 }
 
 export interface GenerationJobInfo {
@@ -55,6 +92,11 @@ export interface GenerationJobInfo {
   started_at: number | null;
   completed_at: number | null;
   tasks: AgentTaskInfo[];
+  current_step?: number;
+  total_steps?: number;
+  progress_percent?: number;
+  progress_events?: GenerationProgressEvent[];
+  qa_summary?: QASummary | null;
 }
 
 export interface ActiveJobResponse {

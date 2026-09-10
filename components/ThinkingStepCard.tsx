@@ -20,7 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { GenerationJobInfo } from "@/lib/api";
+import { GenerationJobInfo, GenerationProgressEvent } from "@/lib/api";
 
 const STAGE_METADATA: Record<
   string,
@@ -87,6 +87,85 @@ const STAGE_KEYS = [
   "gatekeeper",
 ];
 
+function formatEventTime(timestamp: number) {
+  return new Date(timestamp * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function ProgressTimeline({ events }: { events: GenerationProgressEvent[] }) {
+  if (!events.length) return null;
+  return (
+    <div className="mt-3 rounded-2xl border border-white/10 bg-[#080d18] p-3.5">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">End-to-end activity</p>
+      <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+        {events.map((event) => (
+          <div key={event.event_id} className="flex gap-2 text-[11px] text-slate-300">
+            <span className="shrink-0 font-mono text-slate-500">{formatEventTime(event.timestamp)}</span>
+            <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${event.status === "completed" ? "bg-emerald-400" : "bg-[#38bdf8]"}`} />
+            <span>{event.message}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QAProgressPanel({ job }: { job: GenerationJobInfo }) {
+  const qaEvents = (job.progress_events || []).filter((event) => event.agent_type === "visual_qa");
+  const summary = job.qa_summary || [...qaEvents].reverse().find((event) => event.qa_summary)?.qa_summary;
+  if (!qaEvents.length && !summary) return null;
+
+  return (
+    <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">QA activity and automatic repairs</p>
+        {summary && (
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-300">{summary.score}/100</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300">{summary.checkpoints_passed}/{summary.checkpoints_total} passed</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-2 max-h-72 space-y-2.5 overflow-y-auto pr-1">
+        {qaEvents.map((event) => (
+          <div key={event.event_id} className="rounded-xl border border-white/[0.07] bg-black/10 px-3 py-2">
+            <div className="flex items-start gap-2">
+              {event.status === "completed" ? (
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+              ) : (
+                <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[#38bdf8]" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase text-[#38bdf8]">{event.phase || event.status}</span>
+                  {event.pass_number && <span className="text-[10px] text-slate-500">QA pass {event.pass_number}</span>}
+                  <span className="ml-auto text-[10px] font-mono text-slate-500">{formatEventTime(event.timestamp)}</span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-slate-200">{event.message}</p>
+                {event.phase === "results" && event.qa_summary && event.qa_summary.findings.length > 0 && (
+                  <div className="mt-2 space-y-1 border-t border-white/[0.07] pt-2">
+                    {event.qa_summary.findings.map((finding, index) => (
+                      <div key={`${event.event_id}-${finding.checkpoint_id}-${finding.slide_number}-${index}`} className="flex gap-2 text-[10px] leading-relaxed text-slate-400">
+                        <span className={`shrink-0 font-mono ${finding.severity === "CRITICAL" || finding.severity === "HIGH" ? "text-red-300" : finding.severity === "MEDIUM" ? "text-amber-300" : "text-slate-400"}`}>
+                          {finding.checkpoint_id}
+                        </span>
+                        <span>Slide {finding.slide_number}: {finding.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 interface ThinkingStepCardProps {
   job: GenerationJobInfo;
@@ -130,7 +209,7 @@ export function ThinkingStepCard({
   const percent =
     job.status === "completed"
       ? 100
-      : Math.min(95, Math.round((completedCount / STAGE_KEYS.length) * 100) || 5);
+      : Math.min(99, Math.round(job.progress_percent ?? ((completedCount / STAGE_KEYS.length) * 100)) || 5);
 
   const activeStageKey = currentRunningTask?.agent_type || STAGE_KEYS[Math.min(completedCount, 7)];
   const activeMeta = STAGE_METADATA[activeStageKey] || {
@@ -210,6 +289,23 @@ export function ThinkingStepCard({
             Structure Checks Passed
           </span>
         </div>
+        {(job.progress_events?.length || job.qa_summary) && (
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex w-full items-center justify-between text-[11px] text-slate-400 transition-colors hover:text-slate-200"
+            >
+              <span>View generation and QA history</span>
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            {expanded && (
+              <>
+                <ProgressTimeline events={job.progress_events || []} />
+                <QAProgressPanel job={job} />
+              </>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -261,7 +357,7 @@ export function ThinkingStepCard({
                 deckpilotAI is thinking & building...
               </span>
               <span className="rounded-full bg-[#0086FF]/20 px-2 py-0.5 text-[10px] font-medium text-[#38bdf8] border border-[#0086FF]/30">
-                Step {completedCount + 1} of 8
+                Step {job.current_step || completedCount + 1} of {job.total_steps || 8}
               </span>
             </div>
             <p className="text-[11px] text-[#38bdf8] font-medium mt-0.5">
@@ -331,7 +427,9 @@ export function ThinkingStepCard({
               const meta = STAGE_METADATA[key];
               const isCompleted = taskInfo?.status === "completed";
               const isRunning = taskInfo?.status === "running";
-              const stageMsg = isRunning && job.live_agent === key && job.live_message ? job.live_message : null;
+              const stageMsg = isRunning
+                ? (taskInfo?.live_message || (job.live_agent === key ? job.live_message : null))
+                : null;
 
               return (
                 <div
@@ -376,6 +474,8 @@ export function ThinkingStepCard({
                 </div>
               );
             })}
+            <ProgressTimeline events={job.progress_events || []} />
+            <QAProgressPanel job={job} />
           </div>
         )}
       </div>

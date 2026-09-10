@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { api, ApiError, Project, Message, GenerationJobInfo, DecisionQuestion, DeckPlanSpec, Attachment } from "@/lib/api";
+import { api, ApiError, Project, Message, GenerationJobInfo, GenerationProgressEvent, DecisionQuestion, DeckPlanSpec, Attachment } from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { Composer, ComposerMode } from "@/components/Composer";
 import { MessageList } from "@/components/MessageList";
@@ -243,9 +243,14 @@ export default function WorkspacePage() {
           consecutiveFailures = 0;
 
           if (activeProjectIdRef.current === projectId) {
-            setCurrentJob((prev) => ({ ...freshJob,
-              live_message: prev?.id === freshJob.id ? prev.live_message : undefined,
-              live_agent: prev?.id === freshJob.id ? prev.live_agent : undefined,
+            setCurrentJob((prev) => ({
+              ...freshJob,
+              live_message: freshJob.live_message || (prev?.id === freshJob.id ? prev.live_message : undefined),
+              live_agent: freshJob.live_agent || (prev?.id === freshJob.id ? prev.live_agent : undefined),
+              progress_events: freshJob.progress_events?.length
+                ? freshJob.progress_events
+                : (prev?.id === freshJob.id ? prev.progress_events : []),
+              qa_summary: freshJob.qa_summary || (prev?.id === freshJob.id ? prev.qa_summary : null),
             }));
           }
 
@@ -463,7 +468,37 @@ export default function WorkspacePage() {
                     completed_at: data.status === "completed" ? now : null,
                   });
                 }
-                return { ...prev, tasks, live_message: data.message, live_agent: data.agent_type };
+                const incomingEvent: GenerationProgressEvent | null = data.event_id ? {
+                  event_id: data.event_id,
+                  sequence: data.sequence || Date.now(),
+                  timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+                  agent_type: data.agent_type,
+                  status: data.status,
+                  message: data.message,
+                  current_step: data.current_step || prev.current_step || 1,
+                  total_steps: data.total_steps || prev.total_steps || 8,
+                  progress_percent: data.progress_percent ?? prev.progress_percent ?? 5,
+                  phase: data.phase,
+                  pass_number: data.pass_number,
+                  repair_iteration: data.repair_iteration,
+                  qa_summary: data.qa_summary,
+                } : null;
+                const progressEvents = [...(prev.progress_events || [])];
+                if (incomingEvent && !progressEvents.some((item) => item.event_id === incomingEvent.event_id)) {
+                  progressEvents.push(incomingEvent);
+                  progressEvents.sort((a, b) => a.sequence - b.sequence);
+                }
+                return {
+                  ...prev,
+                  tasks,
+                  live_message: data.message,
+                  live_agent: data.agent_type,
+                  current_step: data.current_step || prev.current_step,
+                  total_steps: data.total_steps || prev.total_steps,
+                  progress_percent: data.progress_percent ?? prev.progress_percent,
+                  progress_events: progressEvents,
+                  qa_summary: data.qa_summary || prev.qa_summary,
+                };
               });
             }
           } else if (data.type === "job_completed" || data.agent_type === "job_completed") {
