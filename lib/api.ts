@@ -140,7 +140,7 @@ export interface DeckPlanSpec {
 }
 
 export interface ChatTurnResponse {
-  intent: "chat" | "generate" | "plan" | "ask";
+  intent: "chat" | "generate" | "plan" | "ask" | "revise";
   mode: "autopilot" | "plan" | "ask";
   should_generate: boolean;
   user_message: Message;

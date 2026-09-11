@@ -17,6 +17,7 @@ import {
   FileText,
   Check,
   Loader2,
+  Download,
 } from "lucide-react";
 import { ThinkingStepCard } from "./ThinkingStepCard";
 
@@ -33,7 +34,7 @@ interface MessageListProps {
   decisionQuestions?: DecisionQuestion[] | null;
   planSpec?: DeckPlanSpec | null;
   onCancelJob?: () => void;
-  onDownloadDeck?: () => void;
+  onDownloadDeck?: (version?: number) => void;
   isDownloading?: boolean;
   onSelectSuggestion?: (text: string) => void;
   onSelectDecision?: (questionId: string, option: string) => void;
@@ -44,6 +45,34 @@ interface MessageListProps {
     removedAttachmentIds: string[],
     newFiles: File[]
   ) => Promise<void>;
+}
+
+function parseDeckReadyTag(content: string): { cleanContent: string; deckInfo: { version: number; title: string; slides: number } | null } {
+  const match = content.match(/\[DECK_READY:version=(\d+):title=([^:\]]+):slides=(\d+)\]/);
+  if (match) {
+    const version = parseInt(match[1], 10);
+    const title = match[2].trim();
+    const slides = parseInt(match[3], 10);
+    const cleanContent = content.replace(/\[DECK_READY:version=\d+:title=[^:\]]+:slides=\d+\]\n*/g, "").trim();
+    return {
+      cleanContent,
+      deckInfo: { version, title, slides },
+    };
+  }
+
+  // Fallback pattern match for completion messages
+  const legacyMatch = content.match(/I have (?:created|updated) your presentation \*\*"([^"]+)"\*\*(?:\s*\(Version\s*(\d+)\))?\s*with\s*(\d+)\s*executive widescreen slides/i);
+  if (legacyMatch) {
+    const title = legacyMatch[1].trim();
+    const version = legacyMatch[2] ? parseInt(legacyMatch[2], 10) : 1;
+    const slides = parseInt(legacyMatch[3], 10);
+    return {
+      cleanContent: content,
+      deckInfo: { version, title, slides },
+    };
+  }
+
+  return { cleanContent: content, deckInfo: null };
 }
 
 function formatFileSize(bytes: number): string {
@@ -192,6 +221,7 @@ export function MessageList({
   planSpec = null,
   onCancelJob,
   onDownloadDeck,
+  isDownloading = false,
   onSelectSuggestion,
   onSelectDecision,
   onApprovePlan,
@@ -477,13 +507,55 @@ export function MessageList({
                     </div>
                   )}
 
-                  <div className="text-xs sm:text-sm">
-                    {isUser ? (
-                      <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                    ) : (
-                      <FormattedMessage content={msg.content} />
-                    )}
-                  </div>
+                  {(() => {
+                    const { cleanContent, deckInfo } = !isUser
+                      ? parseDeckReadyTag(msg.content)
+                      : { cleanContent: msg.content, deckInfo: null };
+
+                    return (
+                      <>
+                        <div className="text-xs sm:text-sm">
+                          {isUser ? (
+                            <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                          ) : (
+                            <FormattedMessage content={cleanContent} />
+                          )}
+                        </div>
+
+                        {deckInfo && (
+                          <div className="mt-3.5 p-3 rounded-2xl bg-gradient-to-r from-[#0c1a30] via-[#0d2244] to-[#0c1424] border border-[#0086FF]/40 shadow-lg flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0086FF]/20 text-[#38bdf8] border border-[#0086FF]/30">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-[280px]">
+                                    {deckInfo.title}
+                                  </span>
+                                  <span className="rounded-full bg-[#0086FF]/25 px-2 py-0.5 text-[10px] font-mono text-[#38bdf8] border border-[#0086FF]/40 font-semibold shrink-0">
+                                    v{deckInfo.version}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {deckInfo.slides} slides • 16:9 Widescreen (.pptx)
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onDownloadDeck && onDownloadDeck(deckInfo.version)}
+                              disabled={isDownloading}
+                              className="flex items-center gap-1.5 rounded-full bg-[#0086FF] hover:bg-[#0070d6] px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#0086FF]/30 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>Download .PPTX (v{deckInfo.version})</span>
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   <div
                     className={`mt-2 flex items-center justify-between gap-2 border-t ${

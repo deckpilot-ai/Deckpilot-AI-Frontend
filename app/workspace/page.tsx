@@ -613,10 +613,10 @@ export default function WorkspacePage() {
   };
 
   // Download PPTX
-  const handleDownloadDeck = async () => {
+  const handleDownloadDeck = async (targetVersion?: number) => {
     if (!activeProjectId || isDownloading) return;
     const activeProj = projects.find((p) => p.id === activeProjectId);
-    const version = activeProj?.current_deck_version || 1;
+    const version = targetVersion || activeProj?.current_deck_version || 1;
     setIsDownloading(true);
     try {
       await api.downloadDeck(activeProjectId, version, activeProj?.title);
@@ -873,10 +873,11 @@ export default function WorkspacePage() {
       }
 
       // 5. Autopilot Presentation Intent -> Trigger asynchronous background generation job
-      setSubmissionStatus("Designing presentation flow & structure...");
+      const isReviseIntent = chatRes.intent === "revise";
+      setSubmissionStatus(isReviseIntent ? "Applying targeted slide revisions..." : "Designing presentation flow & structure...");
       const jobRes = await api.startJob(targetProjectId, {
         prompt: effectiveContent,
-        mode: "generate",
+        mode: isReviseIntent ? "revise" : "generate",
         background: true,
         idempotencyKey: crypto.randomUUID(),
       });
@@ -1141,7 +1142,7 @@ export default function WorkspacePage() {
             )}
             {activeProject && activeProject.current_deck_version > 0 && (
               <button
-                onClick={handleDownloadDeck}
+                onClick={() => handleDownloadDeck()}
                 disabled={isDownloading}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-all ${
                   isDownloading
