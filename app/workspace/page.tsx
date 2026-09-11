@@ -258,6 +258,9 @@ export default function WorkspacePage() {
             stopPolling();
             sendingRef.current = false;
             setSendingMessage(false);
+            if (activeProjectIdRef.current === projectId) {
+              setCurrentJob(null);
+            }
 
             // Fetch authoritative messages for the target project and cache them
             api.listMessages(projectId).then((msgs) => {
@@ -378,17 +381,10 @@ export default function WorkspacePage() {
             sendingRef.current = true;
             startPollingJob(activeRes.job.id, projectId);
           } else if (activeRes.job.status === "completed") {
-            const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-            const completedAt = activeRes.job.completed_at || 0;
-            if (!lastMsg || lastMsg.created_at <= completedAt + 5) {
-              setCurrentJob(activeRes.job);
-            } else {
-              setCurrentJob(null);
-            }
+            setCurrentJob(null);
             setSendingMessage(false);
             sendingRef.current = false;
           } else if (activeRes.job.status === "permanently_failed") {
-            // Keep the failed job status visible in ThinkingStepCard so user knows it failed and can retry
             setCurrentJob(activeRes.job);
             setSendingMessage(false);
             sendingRef.current = false;
@@ -503,6 +499,7 @@ export default function WorkspacePage() {
             }
           } else if (data.type === "job_completed" || data.agent_type === "job_completed") {
             if (activeProjectIdRef.current === currentWsProjectId) {
+              setCurrentJob(null);
               setSendingMessage(false);
               sendingRef.current = false;
             }

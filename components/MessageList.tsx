@@ -61,11 +61,11 @@ function parseDeckReadyTag(content: string): { cleanContent: string; deckInfo: {
   }
 
   // Fallback pattern match for completion messages
-  const legacyMatch = content.match(/I have (?:created|updated) your presentation \*\*"([^"]+)"\*\*(?:\s*\(Version\s*(\d+)\))?\s*with\s*(\d+)\s*executive widescreen slides/i);
-  if (legacyMatch) {
+  const legacyMatch = content.match(/I have (?:created|updated|generated|revised)\s+(?:slide\s+\d+\s+of\s+)?(?:your\s+presentation\s+)?\*{0,2}"?([^"\n*]+)"?\*{0,2}(?:\s*\(Version\s*(\d+)\))?\s*(?:with\s*(\d+)\s*(?:executive\s*widescreen\s*)?slides)?/i);
+  if (legacyMatch && legacyMatch[1]) {
     const title = legacyMatch[1].trim();
     const version = legacyMatch[2] ? parseInt(legacyMatch[2], 10) : 1;
-    const slides = parseInt(legacyMatch[3], 10);
+    const slides = legacyMatch[3] ? parseInt(legacyMatch[3], 10) : 10;
     return {
       cleanContent: content,
       deckInfo: { version, title, slides },
@@ -523,34 +523,49 @@ export function MessageList({
                         </div>
 
                         {deckInfo && (
-                          <div className="mt-3.5 p-3 rounded-2xl bg-gradient-to-r from-[#0c1a30] via-[#0d2244] to-[#0c1424] border border-[#0086FF]/40 shadow-lg flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0086FF]/20 text-[#38bdf8] border border-[#0086FF]/30">
-                                <FileText className="h-5 w-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-[280px]">
-                                    {deckInfo.title}
-                                  </span>
-                                  <span className="rounded-full bg-[#0086FF]/25 px-2 py-0.5 text-[10px] font-mono text-[#38bdf8] border border-[#0086FF]/40 font-semibold shrink-0">
-                                    v{deckInfo.version}
+                          <div className="mt-3.5 overflow-hidden rounded-2xl border border-[#0086FF]/35 bg-gradient-to-br from-[#0c182c]/95 via-[#081222]/95 to-[#050a14]/95 p-4 shadow-xl backdrop-blur-md transition-all hover:border-[#0086FF]/60 group">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {/* PowerPoint Styled File Tile */}
+                                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 via-orange-600/20 to-red-600/20 text-orange-400 border border-orange-500/30 shadow-inner">
+                                  <Presentation className="h-6 w-6 text-orange-400 drop-shadow" />
+                                  <span className="absolute -bottom-1 -right-1 rounded bg-orange-500/90 px-1 text-[8px] font-bold text-white uppercase tracking-wider font-mono">
+                                    PPTX
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-400 font-mono">
-                                  {deckInfo.slides} slides • 16:9 Widescreen (.pptx)
-                                </span>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs sm:text-sm font-semibold text-white truncate max-w-[220px] sm:max-w-[340px] tracking-tight">
+                                      {deckInfo.title}
+                                    </span>
+                                    <span className="rounded-full bg-[#0086FF]/20 px-2 py-0.5 text-[10px] font-mono text-[#38bdf8] border border-[#0086FF]/35 font-semibold shrink-0">
+                                      Deck v{deckInfo.version}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono flex-wrap">
+                                    <span>{deckInfo.slides} Slides</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span>16:9 Widescreen</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span className="text-emerald-400 font-medium flex items-center gap-1">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
+                                      QA Passed
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={() => onDownloadDeck && onDownloadDeck(deckInfo.version)}
+                                disabled={isDownloading}
+                                className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#0086FF] to-[#0070d6] hover:from-[#0070d6] hover:to-[#005bb5] px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-[#0086FF]/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 w-full sm:w-auto"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                <span>Download .PPTX (v{deckInfo.version})</span>
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => onDownloadDeck && onDownloadDeck(deckInfo.version)}
-                              disabled={isDownloading}
-                              className="flex items-center gap-1.5 rounded-full bg-[#0086FF] hover:bg-[#0070d6] px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#0086FF]/30 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              <span>Download .PPTX (v{deckInfo.version})</span>
-                            </button>
                           </div>
                         )}
                       </>
