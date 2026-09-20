@@ -9,6 +9,7 @@ import {
   AIProviderInfo,
   AIProviderModelInfo,
   DiscoveredModel,
+  ModelTestResult,
 } from "@/lib/api";
 import {
   Cpu,
@@ -32,6 +33,11 @@ import {
   ArrowUpRight,
   ShieldAlert,
   HelpCircle,
+  Play,
+  FlaskConical,
+  Activity,
+  XCircle,
+  Clock,
 } from "lucide-react";
 
 export default function AdminProvidersPage() {
@@ -98,6 +104,14 @@ export default function AdminProvidersPage() {
   const [manualDisplayName, setManualDisplayName] = useState("");
   const [manualPriority, setManualPriority] = useState(50);
   const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  // Live Model Diagnostics State
+  const [testingModels, setTestingModels] = useState<Record<string, boolean>>({});
+  const [testingProviders, setTestingProviders] = useState<Record<string, boolean>>({});
+  const [modelTestResults, setModelTestResults] = useState<Record<string, ModelTestResult>>({});
+  const [providerTestSummary, setProviderTestSummary] = useState<
+    Record<string, { total: number; successful: number; failed: number; testedAt: number }>
+  >({});
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "admin")) {
@@ -454,6 +468,92 @@ export default function AdminProvidersPage() {
     }
   };
 
+  // 6. Model Diagnostics Handlers
+  const handleTestSingleModel = async (providerId: string, model: AIProviderModelInfo) => {
+    setTestingModels((prev) => ({ ...prev, [model.id]: true }));
+    setError(null);
+    try {
+      const res = await api.testProviderModel(providerId, model.id);
+      setModelTestResults((prev) => ({ ...prev, [model.id]: res }));
+      if (res.success) {
+        showNotification(`✓ ${res.display_name || res.model_id} pinged successfully (${res.latency_ms}ms)`);
+      } else {
+        setError(`✗ Model ${res.display_name || res.model_id} test failed: ${res.error || "Unknown error"}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Diagnostic test failed";
+      setModelTestResults((prev) => ({
+        ...prev,
+        [model.id]: {
+          success: false,
+          model_id: model.model_id,
+          model_db_id: model.id,
+          display_name: model.display_name || model.model_id,
+          error: msg,
+        },
+      }));
+      setError(msg);
+    } finally {
+      setTestingModels((prev) => ({ ...prev, [model.id]: false }));
+    }
+  };
+
+  const handleTestAllModels = async (prov: AIProviderInfo) => {
+    if (!prov.models || prov.models.length === 0) {
+      setError(`No models configured for ${prov.name}. Fetch/add models first.`);
+      return;
+    }
+
+    setTestingProviders((prev) => ({ ...prev, [prov.id]: true }));
+    const markTesting: Record<string, boolean> = {};
+    prov.models.forEach((m) => {
+      markTesting[m.id] = true;
+    });
+    setTestingModels((prev) => ({ ...prev, ...markTesting }));
+    setError(null);
+
+    try {
+      const res = await api.testAllProviderModels(prov.id);
+      const newResults: Record<string, ModelTestResult> = {};
+      res.results.forEach((r) => {
+        if (r.model_db_id) {
+          newResults[r.model_db_id] = r;
+        } else {
+          const matched = prov.models.find((m) => m.model_id === r.model_id);
+          if (matched) newResults[matched.id] = r;
+        }
+      });
+      setModelTestResults((prev) => ({ ...prev, ...newResults }));
+      setProviderTestSummary((prev) => ({
+        ...prev,
+        [prov.id]: {
+          total: res.total_models,
+          successful: res.successful,
+          failed: res.failed,
+          testedAt: Date.now(),
+        },
+      }));
+
+      if (res.failed === 0) {
+        showNotification(`✓ All ${res.total_models} models on ${prov.name} passed diagnostics!`);
+      } else {
+        showNotification(
+          `Provider ${prov.name}: ${res.successful}/${res.total_models} passed (${res.failed} failed)`
+        );
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError("Failed to test all models for provider");
+    } finally {
+      setTestingProviders((prev) => ({ ...prev, [prov.id]: false }));
+      const clearTesting: Record<string, boolean> = {};
+      prov.models.forEach((m) => {
+        clearTesting[m.id] = false;
+      });
+      setTestingModels((prev) => ({ ...prev, ...clearTesting }));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#070a13] text-slate-100 flex flex-col selection:bg-[#0086FF]/30">
       {/* Top Header */}
@@ -696,6 +796,31 @@ export default function AdminProvidersPage() {
                         <span>{prov.keys.length > 0 ? `${prov.keys.length} Key(s)` : "Add Key"}</span>
                       </button>
 
+                      {/* Test All Models Action */}
+                      <button
+                        onClick={() => void handleTestAllModels(prov)}
+                        disabled={testingProviders[prov.id] || prov.models.length === 0}
+                        className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-sm ${
+                          testingProviders[prov.id]
+                            ? "border-amber-500/50 bg-amber-500/20 text-amber-300 opacity-90"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        title="Run diagnostic test on all models of this provider"
+                      >
+                        {testingProviders[prov.id] ? (
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                        ) : (
+                          <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
+                        )}
+                        <span>
+                          {testingProviders[prov.id]
+                            ? "Testing Models..."
+                            : providerTestSummary[prov.id]
+                            ? `Test All (${providerTestSummary[prov.id].successful}/${providerTestSummary[prov.id].total} OK)`
+                            : "Test All Models"}
+                        </span>
+                      </button>
+
                       {/* Fetch Models Action */}
                       <button
                         onClick={() => void handleOpenFetchModal(prov)}
@@ -783,72 +908,142 @@ export default function AdminProvidersPage() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {prov.models.map((m, idx) => (
-                            <div
-                              key={m.id}
-                              className={`flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all ${
-                                m.enabled
-                                  ? "border-white/10 bg-[#0c1222] shadow-sm"
-                                  : "border-white/5 bg-white/[0.02] opacity-60"
-                              }`}
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/5 text-[10px] font-mono text-slate-400">
-                                    {idx + 1}
-                                  </span>
-                                  <span className="text-xs font-semibold text-white truncate">
-                                    {m.display_name || m.model_id}
-                                  </span>
+                          {prov.models.map((m, idx) => {
+                            const isTesting = !!testingModels[m.id];
+                            const testResult = modelTestResults[m.id];
+
+                            return (
+                              <div
+                                key={m.id}
+                                className={`flex flex-col gap-2 rounded-2xl border p-3.5 transition-all ${
+                                  m.enabled
+                                    ? "border-white/10 bg-[#0c1222] shadow-sm"
+                                    : "border-white/5 bg-white/[0.02] opacity-60"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/5 text-[10px] font-mono text-slate-400">
+                                        {idx + 1}
+                                      </span>
+                                      <span className="text-xs font-semibold text-white truncate">
+                                        {m.display_name || m.model_id}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 font-mono truncate pl-7">
+                                      {m.model_id}
+                                      {m.context_length ? ` • ${(m.context_length / 1000).toFixed(0)}k ctx` : ""}
+                                    </div>
+                                  </div>
+
+                                  {/* Priority Adjuster & Controls */}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {/* Test Model Button & Status */}
+                                    {isTesting ? (
+                                      <div className="flex items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300 animate-pulse">
+                                        <RefreshCw className="h-3 w-3 animate-spin text-amber-400" />
+                                        <span>Testing...</span>
+                                      </div>
+                                    ) : testResult ? (
+                                      <button
+                                        onClick={() => void handleTestSingleModel(prov.id, m)}
+                                        className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer ${
+                                          testResult.success
+                                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                                            : "border-red-500/30 bg-red-500/15 text-red-300 hover:bg-red-500/25"
+                                        }`}
+                                        title={
+                                          testResult.success
+                                            ? `Status 200 OK (${testResult.latency_ms}ms)\nClick to re-test\nPreview: "${testResult.response_text || "OK"}"`
+                                            : `Failed: ${testResult.error || "Unknown"}\nClick to re-test`
+                                        }
+                                      >
+                                        {testResult.success ? (
+                                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                        ) : (
+                                          <XCircle className="h-3 w-3 text-red-400" />
+                                        )}
+                                        <span>
+                                          {testResult.success
+                                            ? `${testResult.latency_ms}ms`
+                                            : testResult.status_code
+                                            ? `Err ${testResult.status_code}`
+                                            : "Failed"}
+                                        </span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => void handleTestSingleModel(prov.id, m)}
+                                        className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 hover:border-amber-500/40 hover:bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:text-amber-300 transition-all cursor-pointer"
+                                        title="Run diagnostic test on this model"
+                                      >
+                                        <FlaskConical className="h-3 w-3 text-amber-400" />
+                                        <span>Test</span>
+                                      </button>
+                                    )}
+
+                                    <div className="flex items-center rounded-xl border border-white/10 bg-[#070a13] px-2 py-1">
+                                      <span className="text-[10px] uppercase font-mono text-slate-400 mr-1.5">
+                                        Prio
+                                      </span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={m.priority}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value) || 0;
+                                          void handleUpdateModelPriority(prov.id, m, Math.min(Math.max(val, 0), 100));
+                                        }}
+                                        className="w-10 bg-transparent text-center text-xs font-bold text-[#38bdf8] focus:outline-none"
+                                      />
+                                    </div>
+
+                                    <button
+                                      onClick={() => void handleToggleModelEnabled(prov.id, m)}
+                                      className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition-colors cursor-pointer ${
+                                        m.enabled
+                                          ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                                          : "border-slate-600 bg-slate-800 text-slate-400"
+                                      }`}
+                                      title={m.enabled ? "Model Active" : "Model Inactive"}
+                                    >
+                                      {m.enabled ? "ON" : "OFF"}
+                                    </button>
+
+                                    <button
+                                      onClick={() => void handleDeleteModel(prov.id, m.id)}
+                                      className="text-slate-500 hover:text-red-400 p-1 cursor-pointer"
+                                      title="Remove Model"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="text-[11px] text-slate-400 font-mono truncate pl-7">
-                                  {m.model_id}
-                                  {m.context_length ? ` • ${(m.context_length / 1000).toFixed(0)}k ctx` : ""}
-                                </div>
+
+                                {/* Response Preview / Error Banner when test is present */}
+                                {testResult && (
+                                  <div
+                                    className={`mt-1 rounded-xl px-2.5 py-1.5 text-[11px] font-mono border flex items-start justify-between gap-2 ${
+                                      testResult.success
+                                        ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-300/90"
+                                        : "border-red-500/20 bg-red-500/5 text-red-300/90"
+                                    }`}
+                                  >
+                                    <span className="truncate flex-1">
+                                      {testResult.success
+                                        ? `✓ ${testResult.latency_ms}ms • "${testResult.response_text || "OK"}"`
+                                        : `✗ ${testResult.error || "Request failed"}`}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 shrink-0">
+                                      HTTP {testResult.status_code || (testResult.success ? 200 : 500)}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-
-                              {/* Priority Adjuster & Controls */}
-                              <div className="flex items-center gap-2 shrink-0">
-                                <div className="flex items-center rounded-xl border border-white/10 bg-[#070a13] px-2 py-1">
-                                  <span className="text-[10px] uppercase font-mono text-slate-400 mr-1.5">
-                                    Prio
-                                  </span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={m.priority}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value) || 0;
-                                      void handleUpdateModelPriority(prov.id, m, Math.min(Math.max(val, 0), 100));
-                                    }}
-                                    className="w-10 bg-transparent text-center text-xs font-bold text-[#38bdf8] focus:outline-none"
-                                  />
-                                </div>
-
-                                <button
-                                  onClick={() => void handleToggleModelEnabled(prov.id, m)}
-                                  className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${
-
-                                    m.enabled
-                                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                                      : "border-slate-600 bg-slate-800 text-slate-400"
-                                  }`}
-                                  title={m.enabled ? "Model Active" : "Model Inactive"}
-                                >
-                                  {m.enabled ? "ON" : "OFF"}
-                                </button>
-
-                                <button
-                                  onClick={() => void handleDeleteModel(prov.id, m.id)}
-                                  className="text-slate-500 hover:text-red-400 p-1"
-                                  title="Remove Model"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

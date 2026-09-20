@@ -281,6 +281,29 @@ export interface DiscoveredModel {
   default_priority?: number;
 }
 
+export interface ModelTestResult {
+  success: boolean;
+  provider_id?: string;
+  provider_name?: string;
+  model_id: string;
+  model_db_id?: string;
+  display_name?: string;
+  latency_ms?: number;
+  status_code?: number;
+  response_text?: string;
+  error?: string;
+  usage?: Record<string, unknown>;
+}
+
+export interface ProviderTestAllResult {
+  provider_id: string;
+  provider_name: string;
+  total_models: number;
+  successful: number;
+  failed: number;
+  results: ModelTestResult[];
+}
+
 export interface FetchModelsResult {
   base_url: string;
   total: number;
@@ -730,6 +753,22 @@ export const api = {
   revokeProviderKey: (providerId: string, keyId: string) =>
     request<void>(`/admin/providers/${providerId}/keys/${keyId}`, {
       method: "DELETE",
+    }),
+
+  testProviderModel: (providerId: string, modelDbId: string) =>
+    request<ModelTestResult>(`/admin/providers/${providerId}/models/${modelDbId}/test`, {
+      method: "POST",
+    }),
+
+  testProviderModelCustom: (providerId: string, data: { model_id: string; prompt?: string }) =>
+    request<ModelTestResult>(`/admin/providers/${providerId}/test-model`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  testAllProviderModels: (providerId: string) =>
+    request<ProviderTestAllResult>(`/admin/providers/${providerId}/test-all`, {
+      method: "POST",
     }),
 };
 
