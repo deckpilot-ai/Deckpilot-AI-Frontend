@@ -514,8 +514,13 @@ export default function AdminProvidersPage() {
 
     try {
       const res = await api.testAllProviderModels(prov.id);
+      const resultsList: ModelTestResult[] = Array.isArray(res) ? res : (res.results || []);
+      const totalCount = (typeof res.total_models === "number") ? res.total_models : resultsList.length;
+      const successCount = (typeof res.successful === "number") ? res.successful : resultsList.filter((r) => r.success).length;
+      const failedCount = (typeof res.failed === "number") ? res.failed : (totalCount - successCount);
+
       const newResults: Record<string, ModelTestResult> = {};
-      res.results.forEach((r) => {
+      resultsList.forEach((r) => {
         if (r.model_db_id) {
           newResults[r.model_db_id] = r;
         } else {
@@ -527,18 +532,18 @@ export default function AdminProvidersPage() {
       setProviderTestSummary((prev) => ({
         ...prev,
         [prov.id]: {
-          total: res.total_models,
-          successful: res.successful,
-          failed: res.failed,
+          total: totalCount,
+          successful: successCount,
+          failed: failedCount,
           testedAt: Date.now(),
         },
       }));
 
-      if (res.failed === 0) {
-        showNotification(`✓ All ${res.total_models} models on ${prov.name} passed diagnostics!`);
+      if (failedCount === 0) {
+        showNotification(`✓ All ${totalCount} models on ${prov.name} passed diagnostics!`);
       } else {
         showNotification(
-          `Provider ${prov.name}: ${res.successful}/${res.total_models} passed (${res.failed} failed)`
+          `Provider ${prov.name}: ${successCount}/${totalCount} passed (${failedCount} failed)`
         );
       }
     } catch (err: unknown) {
