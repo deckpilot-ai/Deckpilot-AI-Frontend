@@ -845,27 +845,34 @@ export default function WorkspacePage() {
             if (genData.decision_questions) {
               setDecisionQuestions(genData.decision_questions);
             }
-            // Trigger background deck generation job
-            setSubmissionStatus("Orchestrating multi-agent presentation pipeline...");
-            const jobRes = await api.startJob(targetProjectId!, {
-              prompt: effectiveContent,
-              mode,
-            });
-            const initialJob: GenerationJobInfo = {
-              id: jobRes.job_id,
-              project_id: targetProjectId!,
-              status: "running",
-              mode: jobRes.mode,
-              started_at: Math.floor(Date.now() / 1000),
-              completed_at: null,
-              live_message: "Initializing multi-agent presentation architecture...",
-              live_agent: "agent_orchestrator",
-              tasks: [],
-            };
-            setCurrentJob(initialJob);
-            startPollingJob(jobRes.job_id, targetProjectId!);
+            setSendingMessage(false);
+            sendingRef.current = false;
+            submittingProjectIdRef.current = null;
+            try {
+              const jobRes = await api.startJob(targetProjectId!, {
+                prompt: effectiveContent,
+                mode: genData.intent === "revise" ? "revise" : "generate",
+                background: true,
+                idempotencyKey: crypto.randomUUID(),
+              });
+              const initialJob: GenerationJobInfo = {
+                id: jobRes.job_id,
+                project_id: targetProjectId!,
+                status: "running",
+                mode: jobRes.mode,
+                started_at: Math.floor(Date.now() / 1000),
+                completed_at: null,
+                live_message: "Initializing multi-agent presentation architecture...",
+                live_agent: "agent_orchestrator",
+                tasks: [],
+              };
+              setCurrentJob(initialJob);
+              startPollingJob(jobRes.job_id, targetProjectId!);
+            } catch (jobErr) {
+              console.error("Failed to start generation job:", jobErr);
+            }
           },
-          onDone: ({ assistantMessage }) => {
+          onDone: async ({ assistantMessage, shouldGenerate, intent, decisionQuestions }) => {
             setMessages((prev) => {
               const withoutStream = prev.filter((m) => m.id !== streamAssistantMsgId);
               const alreadyHas = withoutStream.some((m) => m.id === assistantMessage.id);
@@ -873,11 +880,55 @@ export default function WorkspacePage() {
               if (targetProjectId) saveCachedMessages(targetProjectId, next);
               return next;
             });
-            setCurrentJob(null);
             setSendingMessage(false);
             sendingRef.current = false;
             submittingProjectIdRef.current = null;
             void loadProjects();
+
+            if (decisionQuestions && decisionQuestions.length > 0) {
+              setDecisionQuestions(decisionQuestions);
+            }
+
+            if (shouldGenerate) {
+              if (targetProjectId) {
+                const currentProject = projects.find((p) => p.id === targetProjectId);
+                if (!currentProject || currentProject.title === "New Presentation" || currentProject.title === "Untitled Presentation") {
+                  const derivedTitle = deriveInitialProjectTitle(effectiveContent, files);
+                  if (derivedTitle && derivedTitle !== "New Presentation") {
+                    api.updateProject(targetProjectId, { title: derivedTitle }).then((updated) => {
+                      setProjects((prev) => prev.map((p) => (p.id === targetProjectId ? { ...p, title: updated.title } : p)));
+                    }).catch(() => {});
+                  }
+                }
+              }
+
+              const isRevise = intent === "revise";
+              try {
+                const jobRes = await api.startJob(targetProjectId!, {
+                  prompt: effectiveContent,
+                  mode: isRevise ? "revise" : "generate",
+                  background: true,
+                  idempotencyKey: crypto.randomUUID(),
+                });
+                const initialJob: GenerationJobInfo = {
+                  id: jobRes.job_id,
+                  project_id: targetProjectId!,
+                  status: "running",
+                  mode: jobRes.mode,
+                  started_at: Math.floor(Date.now() / 1000),
+                  completed_at: null,
+                  live_message: "Initializing multi-agent presentation architecture...",
+                  live_agent: "agent_orchestrator",
+                  tasks: [],
+                };
+                setCurrentJob(initialJob);
+                startPollingJob(jobRes.job_id, targetProjectId!);
+              } catch (startErr) {
+                console.error("Failed to start presentation job:", startErr);
+              }
+            } else {
+              setCurrentJob(null);
+            }
           },
         });
         return;

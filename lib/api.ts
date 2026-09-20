@@ -469,7 +469,13 @@ export const api = {
       onStart?: (userMsg: Message) => void;
       onDelta: (deltaText: string, accumulated: string) => void;
       onGenerate?: (data: { intent: string; decision_questions?: DecisionQuestion[] }) => void;
-      onDone: (result: { assistantMessage: Message; mode: string }) => void;
+      onDone: (result: {
+        assistantMessage: Message;
+        mode: string;
+        shouldGenerate?: boolean;
+        intent?: string;
+        decisionQuestions?: DecisionQuestion[];
+      }) => void;
       onError?: (error: Error) => void;
     }
   ): Promise<void> => {
@@ -543,6 +549,9 @@ export const api = {
               options.onDone({
                 assistantMessage: event.assistant_message,
                 mode: event.mode || options.mode || "autopilot",
+                shouldGenerate: Boolean(event.should_generate),
+                intent: event.intent || "chat",
+                decisionQuestions: event.decision_questions,
               });
               return;
             } else if (event.type === "error") {
