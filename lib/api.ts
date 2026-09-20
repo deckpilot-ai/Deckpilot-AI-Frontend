@@ -388,6 +388,7 @@ async function request<T>(
       res.status === 401 &&
       !path.startsWith("/auth/login") &&
       !path.startsWith("/auth/register") &&
+      !path.startsWith("/auth/google") &&
       typeof window !== "undefined"
     ) {
       setStoredToken(null);
@@ -419,6 +420,13 @@ async function request<T>(
   return res.json();
 }
 
+export interface AuthProvidersResponse {
+  google: {
+    enabled: boolean;
+    client_id: string | null;
+  };
+}
+
 export const api = {
   // System
   getHealth: () => request<HealthResponse>("/health"),
@@ -440,6 +448,20 @@ export const api = {
     }
     return res;
   },
+
+  loginWithGoogle: async (credential: string) => {
+    const res = await request<{ user: User; token: string }>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential }),
+    });
+    if (res?.token) {
+      setStoredToken(res.token);
+    }
+    return res;
+  },
+
+  getAuthProviders: () =>
+    request<AuthProvidersResponse>("/auth/providers"),
 
   logout: async () => {
     try {
