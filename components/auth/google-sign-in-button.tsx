@@ -10,6 +10,16 @@ declare global {
   interface Window {
     google?: {
       accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: { access_token?: string; error?: string }) => void;
+            error_callback?: (err: unknown) => void;
+          }) => {
+            requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+          };
+        };
         id: {
           initialize: (config: {
             client_id: string;
@@ -17,19 +27,6 @@ declare global {
             auto_select?: boolean;
             cancel_on_tap_outside?: boolean;
           }) => void;
-          renderButton: (
-            element: HTMLElement,
-            options: {
-              type?: "standard" | "icon";
-              theme?: "outline" | "filled_blue" | "filled_black";
-              size?: "large" | "medium" | "small";
-              text?: "signin_with" | "signup_with" | "continue_with" | "signin";
-              shape?: "rectangular" | "pill" | "circle" | "square";
-              logo_alignment?: "left" | "center";
-              width?: number | string;
-              locale?: string;
-            }
-          ) => void;
           prompt: () => void;
         };
       };
@@ -56,11 +53,11 @@ export function GoogleSignInButton({
     process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || null
   );
   const [isConfigured, setIsConfigured] = useState<boolean>(true);
-  const [isLoadingScript, setIsLoadingScript] = useState<boolean>(true);
+  const [isScriptReady, setIsScriptReady] = useState<boolean>(false);
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
-  const buttonContainerRef = useRef<HTMLDivElement>(null);
+  const tokenClientRef = useRef<any>(null);
 
-  // 1. Fetch provider configuration from backend if not already set via env
+  // 1. Fetch provider configuration from backend if not set via env
   useEffect(() => {
     let mounted = true;
 
@@ -78,14 +75,10 @@ export function GoogleSignInButton({
           setIsConfigured(true);
         } else {
           setIsConfigured(false);
-          setIsLoadingScript(false);
         }
       })
       .catch(() => {
-        if (mounted) {
-          setIsConfigured(false);
-          setIsLoadingScript(false);
-        }
+        if (mounted) setIsConfigured(false);
       });
 
     return () => {
@@ -96,131 +89,150 @@ export function GoogleSignInButton({
   // 2. Load Google Identity Services script
   useEffect(() => {
     if (!clientId) return;
-
     let mounted = true;
 
-    const initGoogleAuth = () => {
-      if (!window.google?.accounts?.id || !buttonContainerRef.current) return;
+    const setupClients = () => {
+      if (!window.google?.accounts?.oauth2) return;
 
       try {
-        window.google.accounts.id.initialize({
+        tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          callback: async (response: { credential: string }) => {
-            try {
-              setIsAuthenticating(true);
-              const user = await loginWithGoogle(response.credential);
-              if (onSuccess) {
-                onSuccess(user);
-              } else {
-                if (user.role === "admin") {
-                  router.push("/admin/providers");
+          scope: "email profile openid",
+          callback: async (resp: { access_token?: string; error?: string }) => {
+            if (resp.error) {
+              onError?.(resp.error);
+              setIsAuthenticating(false);
+              return;
+            }
+            if (resp.access_token) {
+              try {
+                setIsAuthenticating(true);
+                const user = await loginWithGoogle(resp.access_token);
+                if (onSuccess) {
+                  onSuccess(user);
                 } else {
-                  router.push("/workspace");
+                  if (user.role === "admin") {
+                    router.push("/admin/providers");
+                  } else {
+                    router.push("/workspace");
+                  }
                 }
+              } catch (err: unknown) {
+                const msg =
+                  err instanceof Error ? err.message : "Google authentication failed";
+                onError?.(msg);
+              } finally {
+                if (mounted) setIsAuthenticating(false);
               }
-            } catch (err: unknown) {
-              const msg =
-                err instanceof Error ? err.message : "Google authentication failed";
-              onError?.(msg);
-            } finally {
-              if (mounted) setIsAuthenticating(false);
             }
           },
-          auto_select: false,
-          cancel_on_tap_outside: true,
+          error_callback: (err: unknown) => {
+            console.error("Google OAuth token error:", err);
+            if (mounted) setIsAuthenticating(false);
+          },
         });
 
-        // Clear any previous render
-        if (buttonContainerRef.current) {
-          buttonContainerRef.current.innerHTML = "";
-          window.google.accounts.id.renderButton(buttonContainerRef.current, {
-            type: "standard",
-            theme: "filled_black",
-            size: "large",
-            text: mode === "signup" ? "signup_with" : "continue_with",
-            shape: "pill",
-            logo_alignment: "left",
-            width: 360,
+        // Also initialize One Tap / ID Token client if available
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response: { credential: string }) => {
+              try {
+                setIsAuthenticating(true);
+                const user = await loginWithGoogle(response.credential);
+                if (onSuccess) {
+                  onSuccess(user);
+                } else {
+                  router.push(user.role === "admin" ? "/admin/providers" : "/workspace");
+                }
+              } catch (err: unknown) {
+                onError?.(err instanceof Error ? err.message : "Google authentication failed");
+              } finally {
+                if (mounted) setIsAuthenticating(false);
+              }
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
           });
         }
+
+        if (mounted) setIsScriptReady(true);
       } catch (err) {
-        console.error("Failed to initialize Google Sign-In:", err);
-      } finally {
-        if (mounted) setIsLoadingScript(false);
+        console.error("Failed to initialize Google clients:", err);
       }
     };
 
-    if (window.google?.accounts?.id) {
-      initGoogleAuth();
+    if (window.google?.accounts?.oauth2) {
+      setupClients();
       return;
     }
 
-    // Check if script element already exists
-    const existingScript = document.getElementById("google-gsi-client");
+    const scriptId = "google-gsi-client";
+    const existingScript = document.getElementById(scriptId);
     if (!existingScript) {
       const script = document.createElement("script");
-      script.id = "google-gsi-client";
+      script.id = scriptId;
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        if (mounted) initGoogleAuth();
+        if (mounted) setupClients();
       };
       script.onerror = () => {
-        if (mounted) {
-          setIsLoadingScript(false);
-          onError?.("Unable to load Google Identity Service");
-        }
+        if (mounted) onError?.("Unable to load Google Identity Service");
       };
       document.body.appendChild(script);
     } else {
-      existingScript.addEventListener("load", initGoogleAuth);
+      existingScript.addEventListener("load", setupClients);
     }
 
     return () => {
       mounted = false;
     };
-  }, [clientId, mode, loginWithGoogle, onSuccess, onError, router]);
+  }, [clientId, loginWithGoogle, onSuccess, onError, router]);
 
-  const handleCustomClick = () => {
+  const handleClick = () => {
     if (isAuthenticating) return;
+
     if (!isConfigured || !clientId) {
       onError?.(
         "Google Sign-In is not configured yet. Set GOOGLE_CLIENT_ID in your environment."
       );
       return;
     }
-    if (window.google?.accounts?.id) {
+
+    if (tokenClientRef.current) {
+      tokenClientRef.current.requestAccessToken({ prompt: "" });
+    } else if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt();
+    } else {
+      onError?.("Google authentication service is initializing. Please try again in a moment.");
     }
   };
 
-  return (
-    <div className={`w-full flex flex-col items-center ${className}`}>
-      {/* Container where Google's official GIS button will mount */}
-      <div
-        ref={buttonContainerRef}
-        className="w-full flex justify-center [&>div]:!w-full [&>div]:!max-w-full [&_iframe]:!mx-auto"
-        style={{ minHeight: "44px" }}
-      />
+  const buttonLabel = mode === "signup" ? "Sign up with Google" : "Continue with Google";
 
-      {/* Fallback button shown during loading or if Google GIS is unconfigured or blocked */}
-      {(!clientId || isLoadingScript || isAuthenticating) && (
-        <button
-          type="button"
-          onClick={handleCustomClick}
-          disabled={isAuthenticating}
-          className="w-full flex items-center justify-center gap-3 rounded-full border border-white/15 bg-white/5 py-2.5 px-4 text-sm font-medium text-slate-200 shadow-sm backdrop-blur-md hover:bg-white/10 hover:border-white/25 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
-        >
-          {isAuthenticating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin text-[#0086FF]" />
-              <span>Authenticating with Google...</span>
-            </>
-          ) : (
-            <>
-              {/* Google multicolor SVG logo */}
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+  return (
+    <div className={`w-full ${className}`}>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isAuthenticating}
+        aria-label={buttonLabel}
+        className="group relative flex w-full items-center justify-center gap-3 rounded-full border border-white/12 bg-gradient-to-b from-[#161f36]/90 to-[#0e1628]/95 px-4 py-2.5 sm:py-3 text-sm font-medium text-slate-100 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all duration-200 hover:border-[#0086FF]/50 hover:from-[#1b2642] hover:to-[#121c33] hover:text-white hover:shadow-[0_0_20px_rgba(0,134,255,0.15)] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+      >
+        {isAuthenticating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin text-[#0086FF]" />
+            <span className="truncate text-xs sm:text-sm font-medium text-slate-300">
+              Connecting with Google...
+            </span>
+          </>
+        ) : (
+          <>
+            {/* Crisp Google multicolor SVG brand icon */}
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-105">
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"
@@ -238,13 +250,13 @@ export function GoogleSignInButton({
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
-              <span>
-                {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
-              </span>
-            </>
-          )}
-        </button>
-      )}
+            </div>
+            <span className="truncate text-xs sm:text-sm font-semibold tracking-tight">
+              {buttonLabel}
+            </span>
+          </>
+        )}
+      </button>
     </div>
   );
 }
