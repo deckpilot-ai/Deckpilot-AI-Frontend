@@ -87,6 +87,48 @@ const STAGE_KEYS = [
   "gatekeeper",
 ];
 
+const STAGE_THOUGHT_PROFILES: Record<string, string[]> = {
+  reference_intake: [
+    "Deconstructing user prompt, core objectives, and domain parameters...",
+    "Scanning reference documents, PDF chapters, and spreadsheet data...",
+    "Identifying stakeholder decision triggers and audience persona...",
+  ],
+  source_grounding: [
+    "Extracting verifiable quantitative proof points and unit economics...",
+    "Grounding claims against source facts to guarantee zero fluff...",
+    "Synthesizing core value proposition and defensible strategic pillars...",
+  ],
+  font_brand_detection: [
+    "Calibrating corporate color palette, accent tones, and contrast ratios...",
+    "Pairing executive typography with strict visual hierarchy...",
+    "Establishing 16:9 widescreen canvas margins and layout bounds...",
+  ],
+  deck_planner: [
+    "Structuring Minto Pyramid storyline (Situation → Complication → Core Thesis)...",
+    "Allocating cognitive weight across chapters and slide progression...",
+    "Selecting consulting layout archetypes (hero, metrics_grid, two_column)...",
+  ],
+  slide_writer: [
+    "Formulating action-oriented headlines answering the executive 'So What?'...",
+    "Synthesizing scannable bullet points under 20 words for scannability...",
+    "Composing substantive 2-4 sentence presenter speaker notes...",
+  ],
+  pptx_renderer: [
+    "Compiling slides into deterministic OpenXML shapes and XML geometry...",
+    "Rendering vector text boxes, data tables, and native slide layouts...",
+    "Applying high-resolution asset placement and container alignments...",
+  ],
+  visual_qa: [
+    "Running automated QA: validating slide count, typography, and canvas bounds...",
+    "Inspecting contrast ratios, text overflow, and negative constraints...",
+    "Verifying data provenance and layout alignment before final sign-off...",
+  ],
+  gatekeeper: [
+    "Performing final delivery verification and packaging presentation artifacts...",
+    "Compiling downloadable .pptx file and preparing workspace summary...",
+  ],
+};
+
 function formatEventTime(timestamp: number) {
   return new Date(timestamp * 1000).toLocaleTimeString([], {
     hour: "2-digit",
@@ -166,7 +208,6 @@ function QAProgressPanel({ job }: { job: GenerationJobInfo }) {
   );
 }
 
-
 interface ThinkingStepCardProps {
   job: GenerationJobInfo;
   deckVersion?: number;
@@ -184,7 +225,7 @@ export function ThinkingStepCard({
 }: ThinkingStepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
+  const [thoughtStep, setThoughtStep] = useState(0);
 
   // Track elapsed time while running
   useEffect(() => {
@@ -195,18 +236,23 @@ export function ThinkingStepCard({
       setElapsedSeconds(Math.max(0, Math.floor((Date.now() - start) / 1000)));
     }, 1000);
 
-
-
     return () => {
       clearInterval(interval);
-
     };
   }, [job.status, job.started_at]);
+
+  // Rotate dynamic CoT thoughts every 2.4s
+  useEffect(() => {
+    if (job.status !== "running" && job.status !== "queued") return;
+    const interval = setInterval(() => {
+      setThoughtStep((prev) => prev + 1);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, [job.status]);
 
   // Determine stage progress
   const completedCount = job.tasks.filter((t) => t.status === "completed").length;
   const currentRunningTask = job.tasks.find((t) => t.status === "running");
-
 
   const percent =
     job.status === "completed"
@@ -222,6 +268,9 @@ export function ThinkingStepCard({
   };
   const ActiveIcon = activeMeta.icon;
 
+  const stageThoughts = STAGE_THOUGHT_PROFILES[activeStageKey] || STAGE_THOUGHT_PROFILES["deck_planner"];
+  const currentThoughtText = stageThoughts[thoughtStep % stageThoughts.length];
+
   const formatTimer = (sec: number) => {
     const m = Math.floor(sec / 60)
       .toString()
@@ -230,7 +279,7 @@ export function ThinkingStepCard({
     return `${m}:${s}`;
   };
 
-  // 1. Completed State - In modern Claude/ChatGPT style, completion is seamlessly presented in the message timeline with the file artifact card
+  // 1. Completed State
   if (job.status === "completed") {
     return null;
   }
@@ -266,7 +315,7 @@ export function ThinkingStepCard({
     );
   }
 
-  // 4. Running / Queued State (Claude & ChatGPT Style Conversational Reasoning Block)
+  // 4. Running / Queued State (Dual-Track Presentation Thought Process Card)
   return (
     <div className="my-3 overflow-hidden rounded-3xl border border-[#0086FF]/30 bg-gradient-to-br from-[#0c1424]/95 via-[#080e1a]/95 to-[#050a14]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-xl animate-fadeIn">
       {/* Top Status Header */}
@@ -289,6 +338,9 @@ export function ThinkingStepCard({
                 <Clock className="h-3 w-3" />
                 {formatTimer(elapsedSeconds)}
               </span>
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-mono text-emerald-300 border border-emerald-500/30">
+                CoT Active
+              </span>
             </div>
             <p className="text-[11px] text-slate-400 truncate mt-0.5">
               {job.live_message || activeMeta.desc}
@@ -307,6 +359,18 @@ export function ThinkingStepCard({
             <span className="hidden sm:inline">Cancel</span>
           </button>
         )}
+      </div>
+
+      {/* Dynamic Real-time Thought Stream Bar */}
+      <div className="mt-3 flex items-center gap-2 rounded-2xl bg-black/30 px-3 py-2 border border-white/5">
+        <span className="h-2 w-2 rounded-full bg-[#38bdf8] shrink-0 animate-ping" />
+        <span className="text-[10px] font-mono font-semibold uppercase text-slate-400 shrink-0">Thought:</span>
+        <p
+          key={`${activeStageKey}-${thoughtStep}`}
+          className="text-xs text-[#93c5fd] font-medium truncate font-mono animate-in fade-in slide-in-from-bottom-1 duration-300"
+        >
+          {currentThoughtText}
+        </p>
       </div>
 
       {/* Modern Slim Progress Bar */}
@@ -353,7 +417,7 @@ export function ThinkingStepCard({
       </div>
 
       {/* Expandable Reasoning / Activity Stream */}
-      {(job.progress_events?.length || job.qa_summary) && (
+      {(job.progress_events?.length || job.qa_summary || true) && (
         <div className="mt-3 border-t border-white/5 pt-2.5">
           <button
             type="button"
@@ -361,7 +425,7 @@ export function ThinkingStepCard({
             className="flex w-full items-center justify-between text-[11px] text-slate-400 hover:text-[#38bdf8] transition-colors py-1 cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <span>Reasoning steps & agent stream ({job.progress_events?.length || 0})</span>
+              <span>Inspect Thought Process & Agent Steps ({job.progress_events?.length || 0})</span>
             </span>
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
