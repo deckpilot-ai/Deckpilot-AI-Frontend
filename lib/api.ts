@@ -317,6 +317,50 @@ export interface ApplicationLogListResponse {
   offset: number;
 }
 
+export interface ProviderHealthModel {
+  provider_name: string;
+  model_id: string;
+  health_state: "HEALTHY" | "DEGRADED" | "RATE_LIMITED" | "SLOW" | "UNAVAILABLE" | "AUTH_ERROR" | "QUOTA_EXCEEDED" | "TEMPORARILY_DISABLED" | "UNKNOWN";
+  circuit_state: "CLOSED" | "OPEN" | "HALF_OPEN";
+  ewma_latency_ms: number;
+  composite_score: number;
+  capabilities: string[];
+  success_rate: number;
+  failure_rate: number;
+  consecutive_failures: number;
+  consecutive_successes: number;
+  last_error: string | null;
+  last_checked_at: number | null;
+  last_success_at: number | null;
+  last_failure_at: number | null;
+  production_requests: number;
+  production_successes: number;
+  production_failures: number;
+  schema_validation_failures: number;
+  qc_rejections: number;
+}
+
+export interface CapabilityRankingItem {
+  provider_name: string;
+  model_id: string;
+  composite_score: number;
+  health_status: string;
+  ewma_latency_ms: number;
+}
+
+export interface ProviderHealthOverview {
+  success: boolean;
+  providers: {
+    name: string;
+    models: ProviderHealthModel[];
+  }[];
+  probe_interval_seconds: number;
+  last_probe_at: number | null;
+  capability_rankings: Record<string, CapabilityRankingItem[]>;
+  top_models: Record<string, string>;
+  message?: string;
+}
+
 
 async function request<T>(
   path: string,
@@ -766,6 +810,14 @@ export const api = {
       available_free_models_count: number;
       top_model: string | null;
     }>("/admin/providers/status"),
+
+  getProviderHealth: () =>
+    request<ProviderHealthOverview>("/admin/providers/health"),
+
+  triggerHealthScan: () =>
+    request<ProviderHealthOverview>("/admin/providers/health/scan", {
+      method: "POST",
+    }),
 
   createProvider: (data: {
     name: string;

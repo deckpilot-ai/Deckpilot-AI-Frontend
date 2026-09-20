@@ -10,6 +10,9 @@ import {
   AIProviderModelInfo,
   DiscoveredModel,
   ModelTestResult,
+  ProviderHealthOverview,
+  ProviderHealthModel,
+  CapabilityRankingItem,
 } from "@/lib/api";
 import {
   Cpu,
@@ -38,6 +41,10 @@ import {
   Activity,
   XCircle,
   Clock,
+  Radio,
+  Gauge,
+  TrendingUp,
+  Bot,
 } from "lucide-react";
 
 export default function AdminProvidersPage() {
@@ -53,6 +60,11 @@ export default function AdminProvidersPage() {
     available_free_models_count: number;
     top_model: string | null;
   } | null>(null);
+
+  // Health Monitoring & Dynamic Routing state
+  const [healthOverview, setHealthOverview] = useState<ProviderHealthOverview | null>(null);
+  const [scanningHealth, setScanningHealth] = useState(false);
+  const [selectedCapabilityTab, setSelectedCapabilityTab] = useState<string>("reasoning");
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -123,12 +135,14 @@ export default function AdminProvidersPage() {
     setLoading(true);
     setError(null);
     try {
-      const [provList, status] = await Promise.all([
+      const [provList, status, health] = await Promise.all([
         api.listProviders(),
         api.getProvidersStatus().catch(() => null),
+        api.getProviderHealth().catch(() => null),
       ]);
       setProviders(provList);
       if (status) setStatusOverview(status);
+      if (health) setHealthOverview(health);
 
       // Expand all providers by default
       const exp: Record<string, boolean> = {};
@@ -144,11 +158,38 @@ export default function AdminProvidersPage() {
     }
   }, []);
 
+  const handleTriggerHealthScan = async () => {
+    setScanningHealth(true);
+    setError(null);
+    try {
+      const res = await api.triggerHealthScan();
+      setHealthOverview(res);
+      showNotification(res.message || "Active health scan completed across all models");
+      await loadData();
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError("Failed to execute health scan");
+    } finally {
+      setScanningHealth(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.role === "admin") {
       void loadData();
     }
   }, [user, loadData]);
+
+  // Periodic polling for health monitor updates every 30 seconds
+  useEffect(() => {
+    if (user?.role !== "admin") return;
+    const interval = setInterval(() => {
+      api.getProviderHealth().then((h) => {
+        if (h) setHealthOverview(h);
+      }).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const showNotification = (msg: string) => {
     setSuccessMsg(msg);
@@ -559,6 +600,16 @@ export default function AdminProvidersPage() {
     }
   };
 
+  const healthModelMap = new Map<string, ProviderHealthModel>();
+  if (healthOverview?.providers) {
+    for (const p of healthOverview.providers) {
+      for (const m of p.models) {
+        healthModelMap.set(`${p.name.toLowerCase()}::${m.model_id}`, m);
+        healthModelMap.set(m.model_id, m);
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#070a13] text-slate-100 flex flex-col selection:bg-[#0086FF]/30">
       {/* Top Header */}
@@ -705,6 +756,305 @@ export default function AdminProvidersPage() {
             </div>
             <div className="text-[11px] text-amber-300/80 mt-1">
               Top provider tried first
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* LLM Health Monitor & Dynamic Model Priority Engine */}
+        {/* ========================================================================= */}
+        <div className="rounded-3xl border border-white/10 bg-[#0c1222]/90 p-5 sm:p-7 backdrop-blur-xl space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#0086FF]/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Monitor Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                  <Radio className="h-4 w-4 animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    LLM Provider Health Monitor & Dynamic Priority Engine
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Automated 60-second health prober • Distributed lock protected • Flapping-damped quality ranking • Instant failover & circuit breaker
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                <Clock className="h-3.5 w-3.5 text-[#38bdf8]" />
+                <span>
+                  {healthOverview?.last_probe_at
+                    ? `Last probe: ${new Date(healthOverview.last_probe_at * 1000).toLocaleTimeString()}`
+                    : "Prober active (60s loop)"}
+                </span>
+              </div>
+              <button
+                onClick={() => void handleTriggerHealthScan()}
+                disabled={scanningHealth}
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50"
+                title="Run immediate lightweight health check across all models"
+              >
+                <Zap className={`h-3.5 w-3.5 ${scanningHealth ? "animate-spin text-amber-300" : ""}`} />
+                <span>{scanningHealth ? "Probing Models..." : "Run Health Scan Now"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Dynamic Capability Priority Router */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-[#0086FF]" />
+                Dynamic Routing by Agent Capability (Auto-selected at Runtime)
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Agents route to Priority #1 and failover to #2/#3 immediately
+              </span>
+            </div>
+
+            {/* Capability Tabs */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "reasoning", label: "Reasoning & Deep Logic", icon: "🧠" },
+                { id: "structured_output", label: "Structured JSON", icon: "📋" },
+                { id: "presentation_planning", label: "Presentation Planning", icon: "📊" },
+                { id: "fast_text", label: "Fast Text Generation", icon: "⚡" },
+                { id: "vision", label: "Vision & QC", icon: "👁️" },
+              ].map((cap) => {
+                const isSelected = selectedCapabilityTab === cap.id;
+                const topKey = healthOverview?.top_models?.[cap.id];
+                const topModel = topKey ? topKey.split("::")[1] || topKey : null;
+
+                return (
+                  <button
+                    key={cap.id}
+                    onClick={() => setSelectedCapabilityTab(cap.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-[#0086FF]/20 border-[#0086FF] text-white shadow-md shadow-[#0086FF]/20"
+                        : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span>{cap.icon}</span>
+                    <span>{cap.label}</span>
+                    {topModel && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-emerald-300">
+                        #1: {topModel.length > 14 ? `${topModel.substring(0, 12)}…` : topModel}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Capability Detail Card */}
+            {(() => {
+              const rankings = healthOverview?.capability_rankings?.[selectedCapabilityTab] || [];
+              const topRanked = rankings[0];
+
+              return (
+                <div className="rounded-2xl border border-white/10 bg-[#070a13]/70 p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Priority #1 Model */}
+                    <div className="md:col-span-1 rounded-xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent p-3.5 relative overflow-hidden">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-1.5">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Priority #1 (Active Model)
+                        </span>
+                        {topRanked && (
+                          <span className="font-mono text-emerald-300">
+                            Score: {topRanked.composite_score}
+                          </span>
+                        )}
+                      </div>
+                      {topRanked ? (
+                        <div>
+                          <div className="text-sm font-bold text-white truncate">
+                            {topRanked.model_id}
+                          </div>
+                          <div className="text-xs text-slate-400 capitalize mt-0.5">
+                            Provider: <span className="text-slate-200 font-medium">{topRanked.provider_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-300 font-mono">
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                              {topRanked.health_status}
+                            </span>
+                            <span>{topRanked.ewma_latency_ms ? `${topRanked.ewma_latency_ms}ms` : "N/A"}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400 italic py-2">
+                          No models currently registered for this capability
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Priority #2 & #3 Fallbacks */}
+                    <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+                      <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span>Automated Failover Cascade (Zero-Downtime Fallback)</span>
+                        <span className="text-[10px] text-slate-500 font-normal">
+                          Triggered instantly on timeout or validation errors
+                        </span>
+                      </div>
+                      {rankings.length > 1 ? (
+                        <div className="space-y-1.5">
+                          {rankings.slice(1, 4).map((r, idx) => (
+                            <div
+                              key={`${r.provider_name}::${r.model_id}`}
+                              className="flex items-center justify-between text-xs bg-white/5 border border-white/5 rounded-lg px-2.5 py-1.5"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-slate-300">
+                                  #{idx + 2} Fallback
+                                </span>
+                                <span className="text-white font-medium truncate">{r.model_id}</span>
+                                <span className="text-slate-500 text-[11px] capitalize">({r.provider_name})</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 font-mono text-[11px]">
+                                <span className="text-slate-400">Score: {r.composite_score}</span>
+                                <span className="text-slate-500">•</span>
+                                <span className="text-[#38bdf8]">{r.ewma_latency_ms}ms</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-500 italic py-2">
+                          Add additional capable models to enable automated failover redundancy
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Model Health Registry Table */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Gauge className="h-3.5 w-3.5 text-purple-400" />
+                Live Model Health & Circuit Registry ({healthOverview?.providers.reduce((acc, p) => acc + p.models.length, 0) || 0} Models Tracked)
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Quality score weighted by reliability, error penalties, and production schema passes
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-[#070a13]/80 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02] text-slate-400 text-[11px] uppercase tracking-wider font-mono">
+                    <th className="py-2.5 px-3">Provider</th>
+                    <th className="py-2.5 px-3">Model</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Circuit</th>
+                    <th className="py-2.5 px-3">Score</th>
+                    <th className="py-2.5 px-3">EWMA Latency</th>
+                    <th className="py-2.5 px-3">Success Rate</th>
+                    <th className="py-2.5 px-3">Capabilities</th>
+                    <th className="py-2.5 px-3">Last Checked</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-mono">
+                  {(!healthOverview?.providers || healthOverview.providers.length === 0) ? (
+                    <tr>
+                      <td colSpan={9} className="py-6 text-center text-slate-500 italic">
+                        No health probes recorded yet. Click &quot;Run Health Scan Now&quot; to probe all models.
+                      </td>
+                    </tr>
+                  ) : (
+                    healthOverview.providers.flatMap((p) =>
+                      p.models.map((m) => {
+                        const isHealthy = m.health_state === "HEALTHY";
+                        const isDegraded = m.health_state === "DEGRADED" || m.health_state === "SLOW";
+                        const isRateLimited = m.health_state === "RATE_LIMITED";
+                        const isCircuitOpen = m.circuit_state === "OPEN";
+
+                        return (
+                          <tr key={`${p.name}::${m.model_id}`} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-2 px-3 text-slate-300 font-semibold capitalize font-sans">
+                              {p.name}
+                            </td>
+                            <td className="py-2 px-3 text-white truncate max-w-[200px]" title={m.model_id}>
+                              {m.model_id}
+                            </td>
+                            <td className="py-2 px-3">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                  isHealthy
+                                    ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                                    : isRateLimited
+                                    ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
+                                    : isDegraded
+                                    ? "border-amber-500/30 bg-amber-500/15 text-amber-300"
+                                    : "border-red-500/30 bg-red-500/15 text-red-300"
+                                }`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    isHealthy ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+                                  }`}
+                                />
+                                {m.health_state}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3">
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                  isCircuitOpen
+                                    ? "bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse"
+                                    : m.circuit_state === "HALF_OPEN"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                    : "bg-emerald-500/10 text-emerald-400"
+                                }`}
+                              >
+                                {m.circuit_state}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 font-bold text-white">
+                              <span className={m.composite_score >= 80 ? "text-emerald-400" : m.composite_score >= 60 ? "text-amber-300" : "text-red-400"}>
+                                {m.composite_score}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-[#38bdf8]">
+                              {m.ewma_latency_ms ? `${m.ewma_latency_ms}ms` : "—"}
+                            </td>
+                            <td className="py-2 px-3 text-slate-300">
+                              {(m.success_rate * 100).toFixed(0)}%
+                              {m.production_failures > 0 && (
+                                <span className="text-red-400 text-[10px] ml-1">
+                                  ({m.production_failures} err)
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="flex flex-wrap gap-1">
+                                {m.capabilities?.map((c) => (
+                                  <span key={c} className="px-1.5 py-0.2 rounded bg-white/5 text-[9px] text-slate-300">
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2 px-3 text-slate-500 text-[10px]">
+                              {m.last_checked_at ? `${Math.max(1, Math.round((Date.now() / 1000 - m.last_checked_at)))}s ago` : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -936,9 +1286,22 @@ export default function AdminProvidersPage() {
                                         {m.display_name || m.model_id}
                                       </span>
                                     </div>
-                                    <div className="text-[11px] text-slate-400 font-mono truncate pl-7">
-                                      {m.model_id}
-                                      {m.context_length ? ` • ${(m.context_length / 1000).toFixed(0)}k ctx` : ""}
+                                    <div className="text-[11px] text-slate-400 font-mono truncate pl-7 flex items-center gap-2 flex-wrap">
+                                      <span>{m.model_id}</span>
+                                      {m.context_length ? <span>• {(m.context_length / 1000).toFixed(0)}k ctx</span> : null}
+                                      {(() => {
+                                        const h = healthModelMap.get(`${prov.name.toLowerCase()}::${m.model_id}`) || healthModelMap.get(m.model_id);
+                                        if (!h) return null;
+                                        const isH = h.health_state === "HEALTHY";
+                                        return (
+                                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${
+                                            isH ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-red-500/30 bg-red-500/10 text-red-300"
+                                          }`}>
+                                            <span className={`h-1.5 w-1.5 rounded-full ${isH ? "bg-emerald-400" : "bg-red-400"}`} />
+                                            {h.health_state} • {h.composite_score} pts • {h.ewma_latency_ms}ms
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
 
