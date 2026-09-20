@@ -780,12 +780,120 @@ export default function WorkspacePage() {
         throw new Error("No attachment could be uploaded. Add a message or choose another file.");
       }
 
-      // 2. Route through Copilot chat with active mode (autopilot, plan, ask) and attachment IDs
+      // 2. Route through Copilot chat with streaming SSE
       if (uploadedAttachmentCount > 0) {
         setSubmissionStatus("Analyzing reference materials with Copilot...");
       } else {
         setSubmissionStatus("Consulting Copilot...");
       }
+
+      const streamAssistantMsgId = `temp-assistant-${Date.now()}`;
+      let streamStarted = false;
+
+      try {
+        await api.streamChatMessage(targetProjectId, effectiveContent, {
+          hasAttachments: uploadedAttachmentCount > 0,
+          mode,
+          attachmentIds: uploadedAttachmentIds,
+          onStart: (userMsg) => {
+            setMessages((prev) => {
+              const updated = prev.map((m) => {
+                if (m.id === tempMsgId) {
+                  return {
+                    ...userMsg,
+                    attachments:
+                      userMsg.attachments && userMsg.attachments.length > 0
+                        ? userMsg.attachments
+                        : uploadedAttachments.length > 0
+                        ? uploadedAttachments
+                        : m.attachments || [],
+                  };
+                }
+                return m;
+              });
+              if (targetProjectId) saveCachedMessages(targetProjectId, updated);
+              return updated;
+            });
+          },
+          onDelta: (_delta, accumulated) => {
+            streamStarted = true;
+            setMessages((prev) => {
+              const assistantExists = prev.some((m) => m.id === streamAssistantMsgId);
+              let nextList: Message[];
+              if (assistantExists) {
+                nextList = prev.map((m) =>
+                  m.id === streamAssistantMsgId ? { ...m, content: accumulated } : m
+                );
+              } else {
+                nextList = [
+                  ...prev,
+                  {
+                    id: streamAssistantMsgId,
+                    project_id: targetProjectId!,
+                    user_id: null,
+                    role: "assistant",
+                    content: accumulated,
+                    created_at: Math.floor(Date.now() / 1000),
+                  },
+                ];
+              }
+              if (targetProjectId) saveCachedMessages(targetProjectId, nextList);
+              return nextList;
+            });
+          },
+          onGenerate: async (genData) => {
+            if (genData.decision_questions) {
+              setDecisionQuestions(genData.decision_questions);
+            }
+            // Trigger background deck generation job
+            setSubmissionStatus("Orchestrating multi-agent presentation pipeline...");
+            const jobRes = await api.startJob(targetProjectId!, {
+              prompt: effectiveContent,
+              mode,
+            });
+            const initialJob: GenerationJobInfo = {
+              id: jobRes.job_id,
+              project_id: targetProjectId!,
+              status: "running",
+              mode: jobRes.mode,
+              started_at: Math.floor(Date.now() / 1000),
+              completed_at: null,
+              live_message: "Initializing multi-agent presentation architecture...",
+              live_agent: "agent_orchestrator",
+              tasks: [],
+            };
+            setCurrentJob(initialJob);
+            startPollingJob(jobRes.job_id, targetProjectId!);
+          },
+          onDone: ({ assistantMessage }) => {
+            setMessages((prev) => {
+              const withoutStream = prev.filter((m) => m.id !== streamAssistantMsgId);
+              const alreadyHas = withoutStream.some((m) => m.id === assistantMessage.id);
+              const next = alreadyHas ? withoutStream : [...withoutStream, assistantMessage];
+              if (targetProjectId) saveCachedMessages(targetProjectId, next);
+              return next;
+            });
+            setCurrentJob(null);
+            setSendingMessage(false);
+            sendingRef.current = false;
+            submittingProjectIdRef.current = null;
+            void loadProjects();
+          },
+        });
+        return;
+      } catch (streamErr) {
+        if (streamStarted) {
+          // If stream already delivered content, do not duplicate
+          setCurrentJob(null);
+          setSendingMessage(false);
+          sendingRef.current = false;
+          submittingProjectIdRef.current = null;
+          return;
+        }
+        console.warn("Streaming chat notice, falling back to direct endpoint", streamErr);
+      }
+
+      // Fallback: Direct non-streaming request
       const chatRes = await api.sendChatMessage(
         targetProjectId,
         effectiveContent,
@@ -855,6 +963,7 @@ export default function WorkspacePage() {
         void loadProjects();
         return;
       }
+
 
       // If generating and current title is generic, derive a title from the generation prompt
       if (targetProjectId) {

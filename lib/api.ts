@@ -459,7 +459,108 @@ export const api = {
       }),
     }),
 
+  streamChatMessage: async (
+    projectId: string,
+    content: string,
+    options: {
+      hasAttachments?: boolean;
+      mode?: "autopilot" | "plan" | "ask";
+      attachmentIds?: string[];
+      onStart?: (userMsg: Message) => void;
+      onDelta: (deltaText: string, accumulated: string) => void;
+      onGenerate?: (data: { intent: string; decision_questions?: DecisionQuestion[] }) => void;
+      onDone: (result: { assistantMessage: Message; mode: string }) => void;
+      onError?: (error: Error) => void;
+    }
+  ): Promise<void> => {
+    const token = getStoredToken();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat/stream`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        content,
+        has_attachments: options.hasAttachments || false,
+        mode: options.mode || "autopilot",
+        attachment_ids: options.attachmentIds || [],
+      }),
+    });
+
+    if (!response.ok) {
+      let errDetail = `Status ${response.status}`;
+      try {
+        const errJson = await response.json();
+        errDetail = errJson.detail || errJson.message || errDetail;
+      } catch {
+        const errText = await response.text();
+        if (errText) errDetail = errText;
+      }
+      throw new Error(errDetail);
+    }
+
+    if (!response.body) {
+      throw new Error("Streaming is not supported in this browser environment.");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let accumulatedText = "";
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data:")) continue;
+          const jsonStr = trimmed.slice(5).trim();
+          try {
+            const event = JSON.parse(jsonStr);
+            if (event.type === "start" && event.user_message) {
+              options.onStart?.(event.user_message);
+            } else if (event.type === "delta" && event.delta) {
+              accumulatedText += event.delta;
+              options.onDelta(event.delta, accumulatedText);
+            } else if (event.type === "generate") {
+              options.onGenerate?.({
+                intent: event.intent || "generate",
+                decision_questions: event.decision_questions,
+              });
+              return;
+            } else if (event.type === "done" && event.assistant_message) {
+              options.onDone({
+                assistantMessage: event.assistant_message,
+                mode: event.mode || options.mode || "autopilot",
+              });
+              return;
+            } else if (event.type === "error") {
+              throw new Error(event.error || "Streaming error occurred");
+            }
+          } catch {
+            // Ignore parse errors on incomplete frames
+          }
+        }
+      }
+    } catch (err: any) {
+      options.onError?.(err instanceof Error ? err : new Error(String(err)));
+      throw err;
+    }
+  },
+
   editChatMessage: (
+
     projectId: string,
     messageId: string,
     data: {

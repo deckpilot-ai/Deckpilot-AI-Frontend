@@ -20,6 +20,8 @@ import {
   Download,
 } from "lucide-react";
 import { ThinkingStepCard } from "./ThinkingStepCard";
+import { DualTrackThinkingCard } from "./DualTrackThinkingCard";
+import { Copy } from "lucide-react";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -106,8 +108,6 @@ function getFileIcon(fileName: string, mimeType?: string) {
   return <FileText className="h-3.5 w-3.5 text-sky-300 shrink-0" />;
 }
 
-
-
 const SUGGESTIONS = [
   {
     title: "💼 Seed Pitch Deck",
@@ -131,6 +131,110 @@ const SUGGESTIONS = [
   },
 ];
 
+function parseDualTrackMessage(content: string): {
+
+  thinkingText: string | null;
+  answerText: string;
+  isStreamingThinking: boolean;
+} {
+  const trimmed = (content || "").trim();
+
+  // 1. Starting with <thinking>
+  if (trimmed.startsWith("<thinking>")) {
+    const endTagIndex = trimmed.indexOf("</thinking>");
+    if (endTagIndex !== -1) {
+      const thinkingText = trimmed.slice("<thinking>".length, endTagIndex).trim();
+      let answerPart = trimmed.slice(endTagIndex + "</thinking>".length).trim();
+
+      if (answerPart.startsWith("<answer>")) {
+        answerPart = answerPart.slice("<answer>".length);
+      }
+      if (answerPart.endsWith("</answer>")) {
+        answerPart = answerPart.slice(0, -("</answer>".length));
+      }
+      return {
+        thinkingText,
+        answerText: answerPart.trim(),
+        isStreamingThinking: false,
+      };
+    } else {
+      // In-flight streaming inside thinking block
+      const thinkingText = trimmed.slice("<thinking>".length).trim();
+      return {
+        thinkingText,
+        answerText: "",
+        isStreamingThinking: true,
+      };
+    }
+  }
+
+  // 2. Normal response or enclosed <answer>
+  let answerPart = trimmed;
+  if (answerPart.startsWith("<answer>")) {
+    answerPart = answerPart.slice("<answer>".length);
+  }
+  if (answerPart.endsWith("</answer>")) {
+    answerPart = answerPart.slice(0, -("</answer>".length));
+  }
+  return {
+    thinkingText: null,
+    answerText: answerPart.trim(),
+    isStreamingThinking: false,
+  };
+}
+
+function CodeBlock({ className, children }: { className?: string; children?: any }) {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || "");
+  const lang = match ? match[1] : "";
+  const codeString = String(children || "").replace(/\n$/, "");
+
+  const handleCopy = () => {
+    if (typeof window !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(codeString);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const isInline = !match && !codeString.includes("\n");
+
+  if (isInline) {
+    return (
+      <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-[#38bdf8] font-mono">
+        {children}
+      </code>
+    );
+  }
+
+  return (
+    <div className="my-3 overflow-hidden rounded-2xl border border-white/10 bg-[#070c18] shadow-lg">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[11px] font-mono text-slate-400">
+        <span className="uppercase font-semibold text-[#38bdf8]">{lang || "code"}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3 text-emerald-400" />
+              <span className="text-emerald-400 font-medium">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3 text-slate-400" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="max-w-full overflow-x-auto p-3.5 text-xs font-mono text-slate-200 leading-relaxed">
+        <code>{codeString}</code>
+      </pre>
+    </div>
+  );
+}
 
 function FormattedMessage({ content }: { content: string }) {
   return (
@@ -174,7 +278,6 @@ function FormattedMessage({ content }: { content: string }) {
           li: ({ children }) => (
             <li className="pl-1 text-slate-300 leading-relaxed">{children}</li>
           ),
-          pre: ({ children }) => <pre className="max-w-full overflow-x-auto whitespace-pre p-3">{children}</pre>,
           table: ({ children }) => (
             <div className="my-3 overflow-x-auto rounded-xl border border-white/10 bg-[#070b14]/90 shadow-md">
               <table className="w-full text-left text-xs border-collapse">{children}</table>
@@ -197,11 +300,7 @@ function FormattedMessage({ content }: { content: string }) {
           td: ({ children }) => (
             <td className="px-3 py-2 text-slate-300 align-top leading-normal">{children}</td>
           ),
-          code: ({ children }) => (
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-[#38bdf8] font-mono">
-              {children}
-            </code>
-          ),
+          code: CodeBlock,
         }}
       >
         {content}
@@ -209,6 +308,7 @@ function FormattedMessage({ content }: { content: string }) {
     </div>
   );
 }
+
 
 export function MessageList({
   messages,
@@ -508,19 +608,31 @@ export function MessageList({
                   )}
 
                   {(() => {
-                    const { cleanContent, deckInfo } = !isUser
-                      ? parseDeckReadyTag(msg.content)
-                      : { cleanContent: msg.content, deckInfo: null };
+                    if (isUser) {
+                      return (
+                        <div className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+                          {msg.content}
+                        </div>
+                      );
+                    }
+
+                    const { thinkingText, answerText, isStreamingThinking } = parseDualTrackMessage(msg.content);
+                    const { cleanContent, deckInfo } = parseDeckReadyTag(answerText || (thinkingText ? "" : msg.content));
 
                     return (
                       <>
-                        <div className="text-xs sm:text-sm">
-                          {isUser ? (
-                            <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                          ) : (
+                        {thinkingText && (
+                          <DualTrackThinkingCard
+                            thinkingText={thinkingText}
+                            isStreaming={isStreamingThinking}
+                          />
+                        )}
+
+                        {cleanContent && (
+                          <div className="text-xs sm:text-sm">
                             <FormattedMessage content={cleanContent} />
-                          )}
-                        </div>
+                          </div>
+                        )}
 
                         {deckInfo && (
                           <div className="mt-3.5 overflow-hidden rounded-2xl border border-[#0086FF]/35 bg-gradient-to-br from-[#0c182c]/95 via-[#081222]/95 to-[#050a14]/95 p-4 shadow-xl backdrop-blur-md transition-all hover:border-[#0086FF]/60 group">
