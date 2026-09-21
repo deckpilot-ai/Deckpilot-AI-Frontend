@@ -328,6 +328,14 @@ export function MessageList({
   onEditMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // --- Smart auto-scroll state ---
+  // True when the user has manually scrolled up away from the bottom.
+  const isUserScrollingRef = useRef(false);
+  // Track previous message count so we can detect a new user send (reset flag).
+  const prevMsgCountRef = useRef(messages.length);
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>("");
@@ -337,8 +345,57 @@ export function MessageList({
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
+  /** Returns true when the scroll container is within `threshold` px of the bottom. */
+  const isNearBottom = (threshold = 200): boolean => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+  };
+
+  /** Smoothly scrolls the container to the very bottom. */
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  };
+
+  // Listen to user scroll events on the container.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const near = isNearBottom();
+      if (near) {
+        // User scrolled back to bottom — resume auto-scroll.
+        isUserScrollingRef.current = false;
+        setShowJumpToBottom(false);
+      } else {
+        // User scrolled up — pause auto-scroll.
+        isUserScrollingRef.current = true;
+        setShowJumpToBottom(true);
+      }
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Auto-scroll when messages / job / loading change.
+  useEffect(() => {
+    const newCount = messages.length;
+    const prevCount = prevMsgCountRef.current;
+
+    // Detect a new user-submitted message (count jumped): reset the scroll lock
+    // so the user sees the "Copilot is thinking..." indicator.
+    if (newCount > prevCount) {
+      isUserScrollingRef.current = false;
+      setShowJumpToBottom(false);
+    }
+    prevMsgCountRef.current = newCount;
+
+    // Only auto-scroll if the user has not scrolled up.
+    if (!isUserScrollingRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, currentJob, loading]);
 
   const startEditing = (msg: Message) => {
@@ -441,7 +498,23 @@ export function MessageList({
       lastMessage.content.toLowerCase().includes("create"));
 
   return (
-    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 max-w-4xl mx-auto w-full">
+    <div className="relative min-h-0 min-w-0 flex-1 flex flex-col">
+    {/* Jump-to-bottom FAB — only shown when user has scrolled up */}
+    {showJumpToBottom && (
+      <button
+        onClick={() => {
+          isUserScrollingRef.current = false;
+          setShowJumpToBottom(false);
+          scrollToBottom();
+        }}
+        aria-label="Jump to latest activity"
+        className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5 rounded-full border border-[#0086FF]/40 bg-[#0a1628]/90 px-4 py-1.5 text-xs font-semibold text-[#38bdf8] shadow-lg shadow-[#0086FF]/20 backdrop-blur-md hover:border-[#0086FF]/80 hover:bg-[#0d1e3a] transition-all animate-fadeIn"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Jump to latest
+      </button>
+    )}
+    <div ref={scrollContainerRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 max-w-4xl mx-auto w-full">
       {messages.map((msg) => {
         const isUser = msg.role === "user";
         const isEditingThis = editingMessageId === msg.id;
@@ -902,6 +975,7 @@ export function MessageList({
       )}
 
       <div ref={bottomRef} />
+    </div>
     </div>
   );
 }

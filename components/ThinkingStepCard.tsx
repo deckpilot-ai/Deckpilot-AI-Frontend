@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sparkles,
   CheckCircle2,
@@ -139,10 +139,20 @@ function formatEventTime(timestamp: number) {
 
 function ProgressTimeline({ events }: { events: GenerationProgressEvent[] }) {
   if (!events.length) return null;
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new events arrive, but only if already near bottom.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const isNear = el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+    if (isNear) el.scrollTop = el.scrollHeight;
+  }, [events]);
+
   return (
     <div className="mt-3 rounded-2xl border border-white/10 bg-[#080d18] p-3.5">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">End-to-end activity</p>
-      <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+      <div ref={listRef} className="max-h-56 space-y-2 overflow-y-auto pr-1">
         {events.map((event) => (
           <div key={event.event_id} className="flex gap-2 text-[11px] text-slate-300">
             <span className="shrink-0 font-mono text-slate-500">{formatEventTime(event.timestamp)}</span>
@@ -160,6 +170,16 @@ function QAProgressPanel({ job }: { job: GenerationJobInfo }) {
   const summary = job.qa_summary || [...qaEvents].reverse().find((event) => event.qa_summary)?.qa_summary;
   if (!qaEvents.length && !summary) return null;
 
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom on new QA events, unless user has scrolled up.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const isNear = el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+    if (isNear) el.scrollTop = el.scrollHeight;
+  }, [qaEvents.length]);
+
   return (
     <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -171,7 +191,7 @@ function QAProgressPanel({ job }: { job: GenerationJobInfo }) {
           </div>
         )}
       </div>
-      <div className="mt-2 max-h-72 space-y-2.5 overflow-y-auto pr-1">
+      <div ref={listRef} className="mt-2 max-h-72 space-y-2.5 overflow-y-auto pr-1">
         {qaEvents.map((event) => (
           <div key={event.event_id} className="rounded-xl border border-white/[0.07] bg-black/10 px-3 py-2">
             <div className="flex items-start gap-2">
