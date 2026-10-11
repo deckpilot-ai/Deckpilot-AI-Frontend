@@ -26,7 +26,7 @@ export function DualTrackThinkingCard({
     return () => clearInterval(interval);
   }, [isStreaming]);
 
-  // Keep collapsed by default once done like Claude, open if streaming
+  // Keep collapsed by default once done, open if streaming
   useEffect(() => {
     if (isStreaming) {
       setExpanded(true);
@@ -47,7 +47,7 @@ export function DualTrackThinkingCard({
 
   return (
     <div className="mb-2.5 select-none">
-      {/* Claude-style Dropdown Trigger */}
+      {/* Reasoning Dropdown Trigger */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -70,7 +70,7 @@ export function DualTrackThinkingCard({
         )}
       </button>
 
-      {/* Claude-style Expanded Thought Drawer */}
+      {/* Reasoning Expanded Thought Drawer */}
       {expanded && (
         <div className="my-1.5 border-l-2 border-slate-700/60 pl-3.5 py-1 text-xs text-slate-400 leading-relaxed font-sans whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
           {cleanThinking || (

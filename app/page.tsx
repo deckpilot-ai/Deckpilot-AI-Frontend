@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   Sparkles,
   Layers,
@@ -23,6 +24,11 @@ import {
   Check,
   Play,
   Sliders,
+  AlertTriangle,
+  Brain,
+  Wand2,
+  Workflow,
+  Sparkle,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -57,14 +63,73 @@ export default function HomePage() {
 
   const currentSlide = slidePreviews[activeSlideTab];
 
+  const differentiators = [
+    {
+      title: "Agentic AI Architecture",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Decoupled agents for requirements, extraction, storyline structuring, layout selection, and quality assurance. No monolithic hallucinating mega-prompts.",
+      icon: Cpu,
+    },
+    {
+      title: "Intelligent Document Understanding",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Ingests complex PDF whitepapers, Excel financial spreadsheets, and DOCX briefs. Extracts facts, numbers, and tables without hallucinating claims.",
+      icon: FileSpreadsheet,
+    },
+    {
+      title: "Editable PowerPoint Output (.pptx)",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Compiled directly into native OpenXML presentation shapes, master slide layouts, and clean vector typography. Never locked raster images.",
+      icon: Download,
+    },
+    {
+      title: "Automated 124-Point QA Gates",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Deterministic visual and structural inspection verifying WCAG contrast ratios, safe 0.6in margins, shape bounds, and typographic hierarchy.",
+      icon: ShieldCheck,
+    },
+    {
+      title: "Self-Healing Repair Workflows",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Automated feedback loops detect shape collisions or text overflows, adjust font scaling, and re-run quality gates autonomously before delivery.",
+      icon: Wand2,
+    },
+    {
+      title: "Multi-Model AI Architecture",
+      status: "Live in Production",
+      statusColor: "emerald",
+      desc: "Dynamic model routing with encrypted API keys, prioritizing leading foundation models for high-order narrative planning and Minto deconstruction.",
+      icon: Workflow,
+    },
+    {
+      title: "Flexible Design & Custom Branding",
+      status: "In Active Beta",
+      statusColor: "sky",
+      desc: "Calibrated obsidian palettes, corporate typography hierarchies, and customizable design tokens tailored to enterprise brand guidelines.",
+      icon: Sliders,
+    },
+    {
+      title: "In-Browser Interactive Slide Canvas",
+      status: "Roadmap Q3",
+      statusColor: "amber",
+      desc: "Real-time thumbnail slide previews directly inside the chat workspace before PowerPoint export.",
+      icon: Layers,
+    },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col bg-[#070a13] text-slate-100 selection:bg-[#0086FF]/30 selection:text-white bg-dot-grid relative">
-      {/* Top Floating Header */}
+      {/* Top Floating Navigation */}
       <Header />
 
       <main className="flex-1">
         {/* ================= HERO SECTION ================= */}
-        <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-32">
+        <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28">
           {/* Ambient Radial Spotlight Gradients */}
           <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[650px] w-[850px] -translate-x-1/2 rounded-full bg-[#0086FF]/15 blur-[140px]" />
           <div className="pointer-events-none absolute top-1/4 right-0 -z-10 h-[450px] w-[550px] rounded-full bg-[#38bdf8]/10 blur-[120px]" />
@@ -73,35 +138,32 @@ export default function HomePage() {
             {/* Pill Announcement Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-4 py-1.5 text-xs font-medium text-[#38bdf8] backdrop-blur-md mb-8 hover:border-[#0086FF]/50 transition-colors">
               <Sparkles className="h-3.5 w-3.5 text-[#0086FF]" />
-              <span>Multi-Agent Presentation Intelligence</span>
+              <span>Agentic AI Presentation Platform</span>
               <span className="text-slate-500">•</span>
-              <span className="text-slate-300">Deterministic PPTX Engine</span>
+              <span className="text-slate-300">Native PowerPoint Compilation</span>
               <ChevronRight className="h-3 w-3 text-[#38bdf8]" />
             </div>
 
-            {/* Main Headline (TokenRouter Style) */}
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl md:text-7xl leading-[1.08]">
-              <span className="block">One Prompt.</span>
-              <span className="block bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                Executive Presentations.
-              </span>
-              <span className="block bg-gradient-to-r from-[#0086FF] via-[#38bdf8] to-emerald-400 bg-clip-text text-transparent">
-                Zero Formatting.
+            {/* Primary Headline */}
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl md:text-7xl leading-[1.08] max-w-5xl mx-auto">
+              We&apos;re Building the Future of{" "}
+              <span className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                Intelligent Presentations.
               </span>
             </h1>
 
-            {/* Subheading */}
-            <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-slate-300 font-normal leading-relaxed">
-              <strong className="text-white font-medium">Your AI Presentation Team.</strong> Turn rough ideas, financial spreadsheets, PDF whitepapers, and DOCX briefs into executive-level PowerPoint decks through conversation.
+            {/* Supporting Headline */}
+            <p className="mx-auto mt-6 max-w-3xl text-base sm:text-xl text-slate-300 font-normal leading-relaxed">
+              Meet <strong className="text-white font-semibold">DeckPilotAI</strong> — our agentic AI-powered platform that turns ideas, documents, and complex information into professional, editable presentations.
             </p>
 
-            {/* Action Pill CTAs */}
+            {/* Two Primary CTAs */}
             <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
               <Link
                 href="/workspace"
                 className="flex items-center justify-center gap-2 rounded-full bg-[#0086FF] px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-[#0086FF]/30 hover:bg-[#0075ED] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer w-full sm:w-auto"
               >
-                <span>Start Building Free</span>
+                <span>Try DeckPilotAI</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
@@ -109,7 +171,7 @@ export default function HomePage() {
                 className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-7 py-3.5 text-sm font-medium text-slate-200 hover:bg-white/10 hover:text-white transition-all w-full sm:w-auto"
               >
                 <Play className="h-3.5 w-3.5 fill-slate-300 text-slate-300" />
-                <span>Explore Live Cockpit</span>
+                <span>Explore DeckPilotAI</span>
               </a>
             </div>
 
@@ -121,11 +183,11 @@ export default function HomePage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
-                1M Context Auto-Compacting
+                124 Automated QA Checkpoints
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
-                Live Multi-Step Agent Execution
+                Multi-Agent Decoupled Execution
               </span>
             </div>
 
@@ -143,7 +205,7 @@ export default function HomePage() {
                     <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
                   </div>
                   <span className="text-xs font-mono text-slate-400 pl-2">
-                    deckpilotAI Studio — Presentation Engine v2.0
+                    DeckPilotAI Studio — Multi-Agent Presentation Engine v2.0
                   </span>
                 </div>
 
@@ -153,7 +215,7 @@ export default function HomePage() {
                     Live Agent Mesh Active
                   </span>
                   <span className="text-xs text-slate-400 font-mono hidden md:inline">
-                    Latency: 3.4s • 1M Context
+                    Latency: 3.4s • 16:9 Widescreen
                   </span>
                 </div>
               </div>
@@ -198,7 +260,7 @@ export default function HomePage() {
                         Orchestration Pipeline
                       </span>
                       <span className="text-[10px] text-emerald-400 font-mono">
-                        8 of 8 Stages Complete
+                        All Stages Complete
                       </span>
                     </div>
 
@@ -224,7 +286,7 @@ export default function HomePage() {
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                         <div>
                           <div className="font-medium text-slate-200 text-[11px]">
-                            2. Deck Architect & Planner
+                            2. Storyline & Minto Planner
                           </div>
                           <div className="text-[10px] text-slate-400">
                             10-slide narrative arc structured
@@ -240,10 +302,10 @@ export default function HomePage() {
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                         <div>
                           <div className="font-medium text-slate-200 text-[11px]">
-                            3. Executive Copywriter & Stylist
+                            3. Design Intelligence Agent
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            High-impact headlines & obsidian palette
+                            Obsidian palette & calibrated typography
                           </div>
                         </div>
                       </div>
@@ -364,7 +426,7 @@ export default function HomePage() {
 
                     {/* Slide Footer */}
                     <div className="mt-4 flex items-center justify-between text-[9px] text-slate-400 pt-3 border-t border-white/5">
-                      <span>deckpilotAI Engine • OpenXML Presentation</span>
+                      <span>DeckPilotAI Engine • OpenXML Presentation</span>
                       <span>Slide {activeSlideTab + 1} of 10</span>
                     </div>
                   </div>
@@ -390,255 +452,358 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ================= STATS & TRUST BAR ================= */}
-        <section className="border-y border-white/5 bg-[#090e1a]/60 py-12">
+        {/* ================= PROBLEM SECTION ================= */}
+        <section className="py-24 border-t border-white/5 bg-[#090e1a]/80">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
-              <div className="p-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                  100%
-                </div>
-                <div className="mt-1 text-xs font-medium text-slate-400">
-                  Native OpenXML PPTX
-                </div>
-                <div className="mt-0.5 text-[11px] text-slate-400">
-                  True editable shapes & masters
-                </div>
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-medium text-amber-400 mb-4">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>The Traditional Presentation Problem</span>
               </div>
-
-              <div className="p-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0086FF] tracking-tight">
-                  &lt; 8s
-                </div>
-                <div className="mt-1 text-xs font-medium text-slate-400">
-                  Pipeline Latency
-                </div>
-                <div className="mt-0.5 text-[11px] text-slate-400">
-                  Multi-agent asynchronous execution
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                  1M
-                </div>
-                <div className="mt-1 text-xs font-medium text-slate-400">
-                  Context Window
-                </div>
-                <div className="mt-0.5 text-[11px] text-slate-400">
-                  Auto-compacting session memory
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-emerald-400 tracking-tight">
-                  Zero
-                </div>
-                <div className="mt-1 text-xs font-medium text-slate-400">
-                  Format Hallucination
-                </div>
-                <div className="mt-0.5 text-[11px] text-slate-400">
-                  Strict OpenXML layout gates
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ================= BENTO GRID: CAPABILITIES ================= */}
-        <section id="features" className="py-24 relative">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-4">
-                <Zap className="h-3.5 w-3.5 text-[#0086FF]" />
-                <span>Enterprise Architecture</span>
-              </div>
-              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                Built for boardroom-ready presentations.
+              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl leading-tight">
+                Great Ideas Deserve Better Presentations.
               </h2>
-              <p className="mt-3 text-sm text-slate-400">
-                A purpose-built multi-agent architecture designed to replace hours of manual PowerPoint drafting with instant executive clarity.
+              <p className="mt-4 text-base text-slate-300">
+                Traditional presentation creation is painful, inefficient, and broken across the entire workflow.
               </p>
             </div>
 
-            {/* Bento Grid (TokenRouter Style) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Card 1 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0086FF]/10 text-[#0086FF] border border-[#0086FF]/20 mb-5 group-hover:scale-110 transition-transform">
-                  <Layers className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  Deterministic PPTX Engine
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Problem 1 */}
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-8 relative overflow-hidden">
+                <div className="text-3xl mb-4 font-mono text-red-400 font-bold">01</div>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  The Formatting Grind
                 </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Unlike tools that export fuzzy HTML snapshots, deckpilotAI generates raw native PowerPoint shapes, master slide layouts, and clean vector typography.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Professionals spend hours manually moving text boxes, aligning card margins, calculating column widths, and adjusting font sizes instead of refining their core thesis.
                 </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-[#38bdf8]">
-                  <span>Native OpenXML 16:9</span>
-                  <ChevronRight className="h-3 w-3" />
+                <div className="mt-6 pt-4 border-t border-white/5 text-[11px] text-red-300/80">
+                  Result: Over 12 hours wasted per deck on manual mechanics.
                 </div>
               </div>
 
-              {/* Card 2 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-5 group-hover:scale-110 transition-transform">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  Intelligent Document Grounding
+              {/* Problem 2 */}
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-8 relative overflow-hidden">
+                <div className="text-3xl mb-4 font-mono text-amber-400 font-bold">02</div>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  Fragmented Source Disconnect
                 </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Attach complex PDF reports, Word briefs, or financial spreadsheets. Our grounding agents extract facts, numbers, and takeaways without hallucinating.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Valuable data is trapped across spreadsheets, PDF research briefs, and strategy memos. Copy-pasting metrics manually introduces errors and breaks narrative continuity.
                 </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-cyan-400">
-                  <span>PDF, DOCX, XLSX Ingestion</span>
-                  <ChevronRight className="h-3 w-3" />
+                <div className="mt-6 pt-4 border-t border-white/5 text-[11px] text-amber-300/80">
+                  Result: Mismatched numbers and unverified claims in executive meetings.
                 </div>
               </div>
 
-              {/* Card 3 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-5 group-hover:scale-110 transition-transform">
-                  <Clock className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  Real-Time Thinking & Background Jobs
+              {/* Problem 3 */}
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-8 relative overflow-hidden">
+                <div className="text-3xl mb-4 font-mono text-violet-400 font-bold">03</div>
+                <h3 className="text-lg font-bold text-white mb-2">
+                  Generic AI Shortcuts
                 </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Follow step-by-step progress as each agent works. Log out or close the browser tab at any time—detached backend workers finish the deck reliably.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  First-generation AI presentation tools generate locked image files, fuzzy HTML snapshots, or generic templates that cannot be edited or customized in native PowerPoint.
                 </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-emerald-400">
-                  <span>Detached Asynchronous Workers</span>
-                  <ChevronRight className="h-3 w-3" />
-                </div>
-              </div>
-
-              {/* Card 4 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400 border border-violet-500/20 mb-5 group-hover:scale-110 transition-transform">
-                  <Database className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  1M Context Session Memory
-                </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  ChatGPT-style draft sessions automatically title themselves on your first message. Long multi-turn conversations compact automatically without losing context.
-                </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-violet-400">
-                  <span>Smart Auto-Compaction</span>
-                  <ChevronRight className="h-3 w-3" />
-                </div>
-              </div>
-
-              {/* Card 5 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-5 group-hover:scale-110 transition-transform">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  Visual QA & Verification Gates
-                </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Automated visual inspection runs on every slide before delivery, verifying contrast ratios, margin alignment, and typography hierarchies.
-                </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-amber-400">
-                  <span>Automated Quality Gates</span>
-                  <ChevronRight className="h-3 w-3" />
-                </div>
-              </div>
-
-              {/* Card 6 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl hover:border-[#0086FF]/50 transition-all group">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/20 mb-5 group-hover:scale-110 transition-transform">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold text-white">
-                  Enterprise Cloudflare R2 Storage
-                </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  All presentations and uploaded references are stored securely with signed presigned URLs in Cloudflare R2, backed by edge libSQL on Turso Cloud.
-                </p>
-                <div className="mt-5 flex items-center gap-2 text-[11px] font-medium text-teal-400">
-                  <span>Turso Cloud + Cloudflare R2</span>
-                  <ChevronRight className="h-3 w-3" />
+                <div className="mt-6 pt-4 border-t border-white/5 text-[11px] text-violet-300/80">
+                  Result: Unusable outputs that fail executive and partner scrutiny.
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= ARCHITECTURE WORKFLOW ================= */}
-        <section id="architecture" className="border-t border-white/5 bg-[#080d19]/80 py-24">
+        {/* ================= SOLUTION SECTION ================= */}
+        <section className="py-24 border-t border-white/5 bg-[#070b14]">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-medium text-emerald-400 mb-4">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Autonomous AI Solution</span>
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl leading-tight">
+                From Complex Information to Clear Communication.
+              </h2>
+              <p className="mt-4 text-base text-slate-300">
+                DeckPilotAI automates the entire presentation lifecycle with specialized, autonomous agents that collaborate in real time.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-[#0c1222] p-5">
+                  <div className="flex items-center gap-2 text-white font-bold text-sm mb-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    Autonomous Grounding & Fact Extraction
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed pl-6">
+                    Our document agents parse PDFs, spreadsheets, and Word documents to isolate core numbers, claims, and strategic pillars before writing a single slide.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0c1222] p-5">
+                  <div className="flex items-center gap-2 text-white font-bold text-sm mb-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    Barbara Minto Pyramid Storytelling
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed pl-6">
+                    Storyline agents formulate logical chapters (Situation → Complication → Core Thesis) with crisp, action-oriented headlines answering &quot;So What?&quot;
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0c1222] p-5">
+                  <div className="flex items-center gap-2 text-white font-bold text-sm mb-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    Deterministic OpenXML Compilation
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed pl-6">
+                    A mathematical layout engine converts JSON slide specs into real Microsoft PowerPoint shapes, vector paths, and master slides.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0c1222] p-5">
+                  <div className="flex items-center gap-2 text-white font-bold text-sm mb-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    Automated Quality Gates & Repair
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed pl-6">
+                    Every slide is audited against 124 visual checkpoints. If an overflow is detected, self-healing agents re-calibrate layouts autonomously.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#0c162e] to-[#070d1a] p-8 shadow-2xl relative overflow-hidden">
+                <div className="text-xs font-mono uppercase tracking-wider text-[#38bdf8] mb-3">
+                  Autonomous Multi-Agent Workflow
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4">
+                  Human-in-the-loop control with zero formatting pain.
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed mb-6">
+                  Unlike opaque AI tools, DeckPilotAI outputs true native PowerPoint files. You can edit every headline, re-scale any metric card, adjust colors, or continue revising through chat.
+                </p>
+                <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs text-slate-300">
+                  <div className="flex items-center justify-between font-mono text-[11px] text-slate-400 pb-1 border-b border-white/5">
+                    <span>Export Quality Guarantee</span>
+                    <span className="text-emerald-400">100% Native PPTX</span>
+                  </div>
+                  <div>• OpenXML standard presentation file</div>
+                  <div>• Clean vector fonts & shape hierarchies</div>
+                  <div>• 16:9 modern widescreen presentation canvas</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= HOW IT WORKS (FOUR VISUAL STEPS) ================= */}
+        <section className="py-24 border-t border-white/5 bg-[#080d19]/90">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-4">
                 <Sliders className="h-3.5 w-3.5 text-[#0086FF]" />
-                <span>How It Works</span>
+                <span>Simple 4-Step Process</span>
               </div>
               <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                From natural conversation to presentation.
+                How It Works.
               </h2>
               <p className="mt-3 text-sm text-slate-400">
-                Four orchestrated phases execute in real-time to deliver board-ready decks.
+                From initial idea to verified presentation in minutes.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Step 1 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative">
-                <span className="rounded-full bg-[#0086FF]/20 px-2.5 py-1 text-[11px] font-mono text-[#38bdf8] border border-[#0086FF]/30">
-                  01
-                </span>
-                <h3 className="text-base font-bold text-white mt-4">Prompt & Attach</h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Type your core idea or attach financial spreadsheets, strategy notes, or PDF whitepapers.
-                </p>
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative flex flex-col justify-between">
+                <div>
+                  <span className="rounded-full bg-[#0086FF]/20 px-3 py-1 text-xs font-mono font-bold text-[#38bdf8] border border-[#0086FF]/30">
+                    Step 01
+                  </span>
+                  <h3 className="text-base font-bold text-white mt-4">
+                    Enter your idea or upload a document
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+                    Type your presentation topic or attach PDF reports, financial spreadsheets (XLSX), or strategy notes.
+                  </p>
+                </div>
+                <div className="mt-6 pt-3 border-t border-white/5 text-[10px] text-slate-500 font-mono">
+                  Multi-Format Intake
+                </div>
               </div>
 
               {/* Step 2 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative">
-                <span className="rounded-full bg-[#0086FF]/20 px-2.5 py-1 text-[11px] font-mono text-[#38bdf8] border border-[#0086FF]/30">
-                  02
-                </span>
-                <h3 className="text-base font-bold text-white mt-4">Ground & Architect</h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Fact-grounding agents analyze source documents and map the complete narrative slide arc.
-                </p>
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative flex flex-col justify-between">
+                <div>
+                  <span className="rounded-full bg-[#0086FF]/20 px-3 py-1 text-xs font-mono font-bold text-[#38bdf8] border border-[#0086FF]/30">
+                    Step 02
+                  </span>
+                  <h3 className="text-base font-bold text-white mt-4">
+                    AI agents analyze and organize content
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+                    Grounding agents extract verified facts while storyline agents structure a persuasive Minto narrative arc.
+                  </p>
+                </div>
+                <div className="mt-6 pt-3 border-t border-white/5 text-[10px] text-slate-500 font-mono">
+                  Minto Narrative Architecture
+                </div>
               </div>
 
               {/* Step 3 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative">
-                <span className="rounded-full bg-[#0086FF]/20 px-2.5 py-1 text-[11px] font-mono text-[#38bdf8] border border-[#0086FF]/30">
-                  03
-                </span>
-                <h3 className="text-base font-bold text-white mt-4">Compile OpenXML</h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  The deterministic PPTX renderer outputs native widescreen master shapes and executive typography.
-                </p>
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative flex flex-col justify-between">
+                <div>
+                  <span className="rounded-full bg-[#0086FF]/20 px-3 py-1 text-xs font-mono font-bold text-[#38bdf8] border border-[#0086FF]/30">
+                    Step 03
+                  </span>
+                  <h3 className="text-base font-bold text-white mt-4">
+                    DeckPilotAI builds the presentation
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+                    Deterministic compilers translate slide specifications into native OpenXML widescreen PowerPoint shapes.
+                  </p>
+                </div>
+                <div className="mt-6 pt-3 border-t border-white/5 text-[10px] text-slate-500 font-mono">
+                  Deterministic OpenXML
+                </div>
               </div>
 
               {/* Step 4 */}
-              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative">
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-mono text-emerald-400 border border-emerald-500/30">
-                  04
-                </span>
-                <h3 className="text-base font-bold text-white mt-4">Instant Export</h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  Download an editable `.pptx` file directly or request iterative revisions through ongoing chat.
-                </p>
+              <div className="rounded-3xl border border-white/10 bg-[#0c1222] p-6 relative flex flex-col justify-between">
+                <div>
+                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-mono font-bold text-emerald-400 border border-emerald-500/30">
+                    Step 04
+                  </span>
+                  <h3 className="text-base font-bold text-white mt-4">
+                    Quality checks help refine the final output
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+                    124 automated QA checks inspect margins, contrast, and layout density, self-healing any detected imperfections.
+                  </p>
+                </div>
+                <div className="mt-6 pt-3 border-t border-white/5 text-[10px] text-emerald-400 font-mono">
+                  124 QA Gates & Export
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= WHY DECKPILOTAI? (DIFFERENTIATORS) ================= */}
+        <section className="py-24 border-t border-white/5">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-4">
+                <Zap className="h-3.5 w-3.5 text-[#0086FF]" />
+                <span>Market Differentiation</span>
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl leading-tight">
+                Why DeckPilotAI?
+              </h2>
+              <p className="mt-4 text-base text-slate-300">
+                Purpose-built presentation engineering backed by verifiable software architecture.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {differentiators.map((diff, idx) => {
+                const Icon = diff.icon;
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-3xl border border-white/10 bg-[#0c1222]/80 p-6 backdrop-blur-xl flex flex-col justify-between hover:border-[#0086FF]/50 transition-all"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0086FF]/15 text-[#38bdf8] border border-[#0086FF]/20">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-medium ${
+                            diff.statusColor === "emerald"
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : diff.statusColor === "sky"
+                              ? "bg-[#0086FF]/10 text-[#38bdf8] border border-[#0086FF]/20"
+                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          }`}
+                        >
+                          {diff.status}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-white mb-2">
+                        {diff.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {diff.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ================= BUILT WITH ADVANCED AI ================= */}
+        <section className="py-24 border-t border-white/5 bg-[#080d19]/90">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <div className="rounded-3xl border border-[#0086FF]/30 bg-gradient-to-b from-[#0c162e] to-[#080e1b] p-8 sm:p-14 relative overflow-hidden shadow-2xl">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-6">
+                <Brain className="h-3.5 w-3.5 text-[#0086FF]" />
+                <span>AI-Native Architecture</span>
+              </div>
+
+              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Built With Advanced AI.
+              </h2>
+
+              <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed max-w-3xl">
+                DeckPilotAI is developing an AI-native presentation architecture leveraging large language models for reasoning, planning, document understanding, and multi-agent coordination.
+              </p>
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="rounded-2xl border border-white/10 bg-[#070b16] p-5">
+                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#38bdf8]" />
+                    Multi-Model Reasoning Architecture
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Within our multi-provider routing layer, high-cognition reasoning models are integrated and prioritized for specialized tasks: complex document grounding, Minto narrative deconstruction, and executive headline copywriting.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#070b16] p-5">
+                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    Independent Startup Transparency
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    DeckPilotAI is an independent technology startup. We prioritize multi-model routing, prompt security, and strict data privacy, ensuring no customer data is ever used to train foundation models.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+                <span>Want to inspect our full technical stack?</span>
+                <Link
+                  href="/technology"
+                  className="inline-flex items-center gap-1.5 text-[#38bdf8] hover:text-white font-medium"
+                >
+                  <span>Explore Technology Architecture</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           </div>
         </section>
 
         {/* ================= INTERACTIVE PROMPT PLAYGROUND ================= */}
-        <section id="playground" className="py-24">
+        <section id="playground" className="py-24 border-t border-white/5">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-14">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-4">
                 <Sparkles className="h-3.5 w-3.5 text-[#0086FF]" />
-                <span>Quick Starter Templates</span>
+                <span>Ready-To-Use Prompts</span>
               </div>
               <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 Ready-to-use executive prompts.
@@ -663,7 +828,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    &quot;Build a 10-slide Seed round pitch deck emphasizing our 45% MoM ARR traction, market TAM, and enterprise pipeline.&quot;
+                    &quot;Build a 10-slide Seed round pitch deck emphasizing our +142% MoM ARR traction, market TAM, and enterprise pipeline.&quot;
                   </p>
                 </div>
                 <div className="mt-5 flex items-center justify-end text-xs text-[#0086FF] font-medium">
@@ -748,7 +913,6 @@ export default function HomePage() {
         <section className="py-20 relative overflow-hidden">
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#0c162e] to-[#080e1b] px-8 py-16 text-center shadow-2xl">
-              {/* Central Electric Blue Glow */}
               <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[350px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0086FF]/20 blur-[100px]" />
 
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-3.5 py-1 text-xs font-medium text-[#38bdf8] mb-6">
@@ -760,7 +924,7 @@ export default function HomePage() {
               </h2>
 
               <p className="mx-auto mt-4 max-w-md text-sm text-slate-300">
-                Join teams who save hours of formatting every week with deckpilotAI.
+                Join founders, consultants, and leaders who save hours of formatting every week with DeckPilotAI.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -783,36 +947,8 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* ================= FOOTER ================= */}
-      <footer className="border-t border-white/5 bg-[#05070d] py-10 text-xs text-slate-400">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[#0086FF] to-[#38bdf8]">
-              <Sparkles className="h-3.5 w-3.5 text-white" />
-            </div>
-            <div>
-              <span className="font-bold text-white">deckpilotAI</span>
-              <span className="mx-2 text-slate-600">—</span>
-              <span className="text-slate-400">From Prompt to Presentation.</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6">
-            <span className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              All Systems Operational
-            </span>
-            <span className="text-slate-500">•</span>
-            <span>Cloudflare R2</span>
-            <span>Turso libSQL</span>
-            <span>FastAPI Core</span>
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-6 pt-6 border-t border-white/5 text-center sm:text-left text-[11px] text-slate-500">
-          © {new Date().getFullYear()} deckpilotAI Inc. All rights reserved. Deterministic multi-agent presentation engineering.
-        </div>
-      </footer>
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 }

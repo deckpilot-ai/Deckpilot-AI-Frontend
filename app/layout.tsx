@@ -17,9 +17,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "deckpilotAI — From Prompt to Presentation | Your AI Presentation Team",
+  metadataBase: new URL("https://deckpilotai.com"),
+  title: {
+    default: "deckpilotAI — From Prompt to Presentation | Agentic AI Presentation Platform",
+    template: "%s | deckpilotAI",
+  },
   description:
-    "Turn rough ideas, financial reports, PDF whitepapers, and DOCX briefs into executive-level PowerPoint decks through conversation. Deterministic layouts, 1M context compaction, and native PPTX export.",
+    "Turn rough ideas, financial reports, PDF whitepapers, and DOCX briefs into executive-level PowerPoint decks through conversation. Deterministic layouts, multi-agent orchestration, and native PPTX export.",
   keywords: [
     "AI Presentation Maker",
     "PowerPoint AI",
@@ -27,7 +31,26 @@ export const metadata: Metadata = {
     "Executive Presentations",
     "Multi-Agent Presentation Engineering",
     "deckpilotAI",
+    "Autonomous Presentation AI",
   ],
+  authors: [{ name: "DeckPilotAI Inc." }],
+  creator: "DeckPilotAI",
+  publisher: "DeckPilotAI",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://deckpilotai.com",
+    title: "deckpilotAI — From Prompt to Presentation",
+    description:
+      "Autonomous agentic AI presentation engineering. Transforms prompts, spreadsheets, and document briefs into fully editable PowerPoint decks.",
+    siteName: "deckpilotAI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "deckpilotAI — From Prompt to Presentation",
+    description:
+      "Autonomous agentic AI presentation engineering. Deterministic OpenXML layouts and native PPTX export.",
+  },
 };
 
 export default function RootLayout({

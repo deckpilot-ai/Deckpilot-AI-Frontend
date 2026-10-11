@@ -66,7 +66,7 @@ function generateDynamicThought(seed: number): string {
   return `${v} ${d} ${adv} ${g}...`;
 }
 
-export function ClaudeThinkingCard() {
+export function ThinkingTimelineCard() {
   const [expanded, setExpanded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [currentThoughtIndex, setCurrentThoughtIndex] = useState(0);
@@ -120,7 +120,7 @@ export function ClaudeThinkingCard() {
 
   return (
     <div className="my-3 max-w-2xl overflow-hidden rounded-3xl border border-[#0086FF]/30 bg-gradient-to-br from-[#0c1424]/95 via-[#080d18]/95 to-[#060a12]/95 p-4 shadow-2xl backdrop-blur-xl transition-all">
-      {/* Interactive Claude Thinking Header */}
+      {/* Interactive Thinking Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Animated Brain Icon */}
@@ -157,7 +157,7 @@ export function ClaudeThinkingCard() {
         <button
           onClick={() => setExpanded(!expanded)}
           className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm"
-          title="Toggle Claude-style thinking timeline"
+          title="Toggle thinking timeline"
         >
           <Terminal className="h-3 w-3 text-[#38bdf8]" />
           <span>{expanded ? "Hide Details" : "Inspect Thoughts"}</span>
@@ -169,7 +169,7 @@ export function ClaudeThinkingCard() {
         </button>
       </div>
 
-      {/* Expandable Claude Thinking Stream Log */}
+      {/* Expandable Thinking Stream Log */}
       {expanded && (
         <div className="mt-3.5 border-t border-white/10 pt-3">
           <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-mono mb-2 px-1">

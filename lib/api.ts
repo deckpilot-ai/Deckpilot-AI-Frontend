@@ -954,5 +954,25 @@ export const api = {
     request<ProviderTestAllResult>(`/admin/providers/${providerId}/test-all`, {
       method: "POST",
     }),
+
+  submitContactInquiry: (data: ContactInquiryPayload) =>
+    request<ContactInquiryResponse>("/contact", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
+
+export interface ContactInquiryPayload {
+  full_name: string;
+  email: string;
+  company?: string;
+  inquiry_type: "general" | "partnership" | "feedback" | "support" | "investor";
+  message: string;
+  honeypot?: string;
+}
+
+export interface ContactInquiryResponse {
+  status: string;
+  message: string;
+}
 
