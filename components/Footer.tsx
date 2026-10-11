@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, Mail, ArrowUpRight } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Mail, ArrowUpRight } from "lucide-react";
 
 export function Footer() {
   return (
@@ -9,13 +10,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 pb-12 border-b border-white/5">
           {/* Brand Info (2 cols) */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#0086FF] to-[#38bdf8] shadow-md shadow-[#0086FF]/30 group-hover:scale-105 transition-transform">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-base font-bold tracking-tight text-white">
-                deckpilot<span className="text-[#0086FF]">AI</span>
-              </span>
+            <Link href="/" className="inline-flex items-center group">
+              <BrandLogo size="md" />
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">

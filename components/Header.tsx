@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
-  Sparkles,
   LogOut,
   Layout,
   User as UserIcon,
@@ -39,20 +39,10 @@ export function Header() {
         {/* Brand Logo */}
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2.5 text-decoration-none group"
+          className="flex shrink-0 items-center text-decoration-none group"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#0086FF] via-[#0075ED] to-[#38bdf8] shadow-md shadow-[#0086FF]/30 group-hover:scale-105 transition-transform">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base font-bold tracking-tight text-white">
-              deckpilot<span className="text-[#0086FF]">AI</span>
-            </span>
-            <span className="hidden sm:inline-flex items-center rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-2 py-0.5 text-[10px] font-medium text-[#38bdf8]">
-              Startup
-            </span>
-          </div>
+          <BrandLogo size="md" showBadge={true} />
         </Link>
 
         {/* Desktop Nav Links */}

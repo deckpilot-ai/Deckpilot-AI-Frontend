@@ -36,6 +36,15 @@ export const metadata: Metadata = {
   authors: [{ name: "DeckPilotAI Inc." }],
   creator: "DeckPilotAI",
   publisher: "DeckPilotAI",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -44,12 +53,21 @@ export const metadata: Metadata = {
     description:
       "Autonomous agentic AI presentation engineering. Transforms prompts, spreadsheets, and document briefs into fully editable PowerPoint decks.",
     siteName: "deckpilotAI",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 675,
+        alt: "DeckPilotAI — Autonomous AI Presentation Engineering Platform",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "deckpilotAI — From Prompt to Presentation",
     description:
       "Autonomous agentic AI presentation engineering. Deterministic OpenXML layouts and native PPTX export.",
+    images: ["/og-image.jpg"],
   },
 };
 
