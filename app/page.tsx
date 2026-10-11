@@ -15,9 +15,6 @@ import {
   Download,
   Terminal,
   Zap,
-  Clock,
-  Database,
-  Lock,
   ChevronRight,
   TrendingUp,
   FileSpreadsheet,
@@ -28,7 +25,6 @@ import {
   Brain,
   Wand2,
   Workflow,
-  Sparkle,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -140,7 +136,7 @@ export default function HomePage() {
               <Sparkles className="h-3.5 w-3.5 text-[#0086FF]" />
               <span>Agentic AI Presentation Platform</span>
               <span className="text-slate-500">•</span>
-              <span className="text-slate-300">Native PowerPoint Compilation</span>
+              <span className="text-slate-300">Founded August 2025</span>
               <ChevronRight className="h-3 w-3 text-[#38bdf8]" />
             </div>
 
@@ -154,7 +150,7 @@ export default function HomePage() {
 
             {/* Supporting Headline */}
             <p className="mx-auto mt-6 max-w-3xl text-base sm:text-xl text-slate-300 font-normal leading-relaxed">
-              Meet <strong className="text-white font-semibold">DeckPilotAI</strong> — our agentic AI-powered platform that turns ideas, documents, and complex information into professional, editable presentations.
+              Founded in August 2025, <strong className="text-white font-semibold">DeckPilotAI</strong> is an agentic AI-powered platform that turns ideas, documents, and complex information into professional, editable presentations.
             </p>
 
             {/* Two Primary CTAs */}
@@ -177,6 +173,10 @@ export default function HomePage() {
 
             {/* Quick Trust Highlights */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                Founded August 2025
+              </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
                 100% Native OpenXML (.pptx)

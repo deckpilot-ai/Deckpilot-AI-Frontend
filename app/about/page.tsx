@@ -9,15 +9,15 @@ import {
   Lightbulb,
   Cpu,
   Target,
-  Users,
   Compass,
   CheckCircle2,
+  Calendar,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "About Us — DeckPilotAI | Mission, Vision & Startup Story",
   description:
-    "DeckPilotAI is an emerging AI startup developing autonomous presentation engineering agents. Learn our story, mission, vision, and approach to responsible AI.",
+    "Founded in August 2025, DeckPilotAI is an emerging AI startup developing autonomous presentation engineering agents. Learn our story, mission, vision, and approach to responsible AI.",
 };
 
 export default function AboutPage() {
@@ -35,7 +35,7 @@ export default function AboutPage() {
               <Sparkles className="h-3.5 w-3.5 text-[#0086FF]" />
               <span>About DeckPilotAI</span>
               <span className="text-slate-500">•</span>
-              <span className="text-slate-300">Independent AI Startup</span>
+              <span className="text-slate-300">Founded August 2025</span>
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl leading-[1.12]">
@@ -46,8 +46,32 @@ export default function AboutPage() {
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-slate-300 leading-relaxed">
-              We are an emerging technology startup building intelligent, agentic AI solutions for productivity and enterprise workflows. Our flagship product automates the creation of professional, fully editable PowerPoint presentations.
+              Founded in August 2025, DeckPilotAI is an emerging technology startup building intelligent, agentic AI solutions for productivity and enterprise workflows. Our flagship product automates the creation of professional, fully editable PowerPoint presentations.
             </p>
+
+            {/* Startup At-A-Glance Stat Strip */}
+            <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left max-w-3xl mx-auto">
+              <div className="rounded-2xl border border-white/10 bg-[#0c1222]/80 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Founded</div>
+                <div className="text-base font-bold text-white mt-1">August 2025</div>
+                <div className="text-[11px] text-[#38bdf8] mt-0.5">Independent Startup</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0c1222]/80 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Core Focus</div>
+                <div className="text-base font-bold text-white mt-1">Agentic AI</div>
+                <div className="text-[11px] text-emerald-400 mt-0.5">Presentation Engine</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0c1222]/80 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Export Standard</div>
+                <div className="text-base font-bold text-white mt-1">100% Native</div>
+                <div className="text-[11px] text-cyan-400 mt-0.5">OpenXML (.pptx)</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0c1222]/80 p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quality Gates</div>
+                <div className="text-base font-bold text-white mt-1">124 Checks</div>
+                <div className="text-[11px] text-amber-400 mt-0.5">Automated Inspection</div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -96,11 +120,28 @@ export default function AboutPage() {
             <div className="text-center max-w-2xl mx-auto mb-14">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1 text-xs font-medium text-slate-300 mb-4">
                 <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
-                <span>Origins</span>
+                <span>Origins & Founding</span>
               </div>
               <h2 className="text-3xl font-bold text-white tracking-tight sm:text-4xl">
                 The problem that inspired DeckPilotAI.
               </h2>
+            </div>
+
+            {/* Founding Milestone Highlight */}
+            <div className="mb-10 rounded-2xl border border-[#0086FF]/30 bg-gradient-to-r from-[#0086FF]/10 via-[#0c162e] to-[#0c1222] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-left">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0086FF]/20 text-[#38bdf8] border border-[#0086FF]/30">
+                <Calendar className="h-6 w-6 text-[#38bdf8]" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-[#38bdf8] flex items-center gap-2">
+                  <span>Founded in August 2025</span>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-slate-400 font-normal">Startup Milestone</span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                  DeckPilotAI was established in August 2025 with the core vision of moving beyond fragile one-shot prompt generators to build a disciplined, multi-agent presentation engineering system.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
@@ -111,7 +152,7 @@ export default function AboutPage() {
                 The existing options force an uncomfortable compromise. On one hand, manual presentation design in legacy tools requires manually reading lengthy documents, copying data into spreadsheets, calculating chart ratios, and formatting shapes pixel by pixel. On the other hand, early generative AI tools often take shortcuts: generating static, non-editable image files, hallucinating financial metrics, or creating generic slides that fail executive scrutiny.
               </p>
               <p>
-                We founded <strong className="text-white">DeckPilotAI</strong> with a clear conviction: presentations shouldn&apos;t be generated by a single prompt guessing at visual coordinates. They should be built by a disciplined team of specialized software agents—collaborating just like human presentation designers, copywriters, and quality assurance specialists.
+                We founded <strong className="text-white">DeckPilotAI in August 2025</strong> with a clear conviction: presentations shouldn&apos;t be generated by a single prompt guessing at visual coordinates. They should be built by a disciplined team of specialized software agents—collaborating just like human presentation designers, copywriters, and quality assurance specialists.
               </p>
               <p>
                 By combining multi-agent reasoning with a deterministic OpenXML compilation engine, DeckPilotAI produces presentations that are factually grounded, aesthetically balanced, and 100% editable in native PowerPoint.

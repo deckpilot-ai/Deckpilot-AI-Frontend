@@ -19,7 +19,7 @@ export function Footer() {
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              From Prompt to Presentation. Autonomous AI presentation engineering with multi-agent orchestration, Minto narrative structuring, and deterministic OpenXML PowerPoint generation.
+              Founded in August 2025. Autonomous AI presentation engineering with multi-agent orchestration, Minto narrative structuring, and deterministic OpenXML PowerPoint generation.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -182,6 +182,8 @@ export function Footer() {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-center sm:text-left">
             <span>© 2026 DeckPilotAI. All rights reserved.</span>
+            <span>•</span>
+            <span>Founded August 2025</span>
             <span>•</span>
             <span>Autonomous Presentation Engineering</span>
           </div>

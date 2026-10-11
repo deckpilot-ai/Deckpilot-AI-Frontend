@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { api, type ContactInquiryPayload } from "@/lib/api";
@@ -10,8 +9,6 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  Building2,
   Clock,
   ShieldCheck,
   MessageSquare,
@@ -134,9 +131,14 @@ export default function ContactPage() {
               {/* Left Column: Direct Info & Inquiries (5 cols) */}
               <div className="lg:col-span-5 space-y-6">
                 <div className="rounded-3xl border border-white/10 bg-[#0c1222]/90 p-6 sm:p-8 backdrop-blur-xl">
-                  <h2 className="text-lg font-bold text-white mb-2">
-                    Official Contact
-                  </h2>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-bold text-white">
+                      Official Contact
+                    </h2>
+                    <span className="rounded-full border border-[#0086FF]/30 bg-[#0086FF]/10 px-2.5 py-0.5 text-[10px] font-medium text-[#38bdf8]">
+                      Founded August 2025
+                    </span>
+                  </div>
                   <p className="text-xs text-slate-400 mb-6 leading-relaxed">
                     Direct communications are monitored by our leadership and engineering team.
                   </p>
